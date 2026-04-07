@@ -5,6 +5,10 @@
     "category": "tech",
     "homepage": "https://news.ycombinator.com/",
     "content_channel": "community",
+    "ingest_mode": "homepage",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "fetched_at",
     "parser": "hn_front_page",
     "classification": "article",
     "entry_limit": 6,
@@ -17,11 +21,17 @@
     "category": "tech",
     "homepage": "https://www.producthunt.com/",
     "content_channel": "launches",
-    "parser": "internal_article_links",
+    "ingest_mode": "official_api",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "published_at",
+    "parser": "product_hunt_api",
     "classification": "article",
     "entry_limit": 3,
-    "planned_access": "official pages and stable feed equivalents when available",
-    "status": "planned"
+    "api_endpoint": "https://api.producthunt.com/v2/api/graphql",
+    "credential_binding": "PRODUCT_HUNT_TOKEN",
+    "planned_access": "official GraphQL API with developer token",
+    "status": "active"
   },
   {
     "id": "yc-launches",
@@ -29,6 +39,10 @@
     "category": "tech",
     "homepage": "https://www.ycombinator.com/launches/new",
     "content_channel": "launches",
+    "ingest_mode": "homepage",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "fetched_at",
     "parser": "internal_article_links",
     "classification": "article",
     "entry_limit": 3,
@@ -41,6 +55,10 @@
     "category": "tech",
     "homepage": "https://techcrunch.com/",
     "content_channel": "media",
+    "ingest_mode": "homepage",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "fetched_at",
     "parser": "internal_article_links",
     "classification": "article",
     "entry_limit": 3,
@@ -53,6 +71,10 @@
     "category": "vc",
     "homepage": "https://news.crunchbase.com/",
     "content_channel": "funding",
+    "ingest_mode": "homepage",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "fetched_at",
     "parser": "internal_article_links",
     "classification": "article",
     "entry_limit": 3,
@@ -65,11 +87,24 @@
     "category": "vc",
     "homepage": "https://a16z.com/",
     "content_channel": "vc_thesis",
-    "parser": "internal_article_links",
+    "ingest_mode": "xml_sitemap",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "published_at",
+    "parser": "sitemap_documents",
     "classification": "article",
     "entry_limit": 3,
-    "planned_access": "blog, podcast, and thesis posts",
-    "status": "planned"
+    "sitemap_index_url": "https://a16z.com/sitemap_index.xml",
+    "sitemap_include_patterns": [
+      "post-sitemap",
+      "newsletter-sitemap",
+      "news-sitemap"
+    ],
+    "url_allowlist_patterns": [
+      "https://a16z.com/"
+    ],
+    "planned_access": "official WordPress sitemap entries",
+    "status": "active"
   },
   {
     "id": "sequoia",
@@ -77,11 +112,22 @@
     "category": "vc",
     "homepage": "https://www.sequoiacap.com/",
     "content_channel": "vc_thesis",
-    "parser": "internal_article_links",
+    "ingest_mode": "xml_sitemap",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "published_at",
+    "parser": "sitemap_documents",
     "classification": "article",
     "entry_limit": 3,
+    "sitemap_index_url": "https://sequoiacap.com/sitemap_index.xml",
+    "sitemap_include_patterns": [
+      "post-sitemap"
+    ],
+    "url_allowlist_patterns": [
+      "https://sequoiacap.com/"
+    ],
     "planned_access": "portfolio pages and partner essays",
-    "status": "planned"
+    "status": "active"
   },
   {
     "id": "lightspeed",
@@ -89,11 +135,22 @@
     "category": "vc",
     "homepage": "https://lsvp.com/",
     "content_channel": "vc_thesis",
-    "parser": "internal_article_links",
+    "ingest_mode": "xml_sitemap",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "published_at",
+    "parser": "sitemap_documents",
     "classification": "article",
     "entry_limit": 3,
+    "sitemap_index_url": "https://lsvp.com/sitemap_index.xml",
+    "sitemap_include_patterns": [
+      "post-sitemap"
+    ],
+    "url_allowlist_patterns": [
+      "https://lsvp.com/"
+    ],
     "planned_access": "partner posts and market maps",
-    "status": "planned"
+    "status": "active"
   },
   {
     "id": "benchmark",
@@ -101,11 +158,15 @@
     "category": "vc",
     "homepage": "https://benchmark.com/",
     "content_channel": "vc_thesis",
-    "parser": "internal_article_links",
+    "ingest_mode": "manual_curated",
+    "enabled": false,
+    "stability": "manual_curated",
+    "freshness_basis": "published_at",
+    "parser": "manual_curated",
     "classification": "article",
     "entry_limit": 3,
-    "planned_access": "partner writing and portfolio updates",
-    "status": "planned"
+    "planned_access": "manual curation only; no stable automated source on the public site",
+    "status": "manual"
   },
   {
     "id": "nfx",
@@ -113,11 +174,22 @@
     "category": "vc",
     "homepage": "https://www.nfx.com/",
     "content_channel": "newsletter",
-    "parser": "internal_article_links",
+    "ingest_mode": "page_data",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "published_at",
+    "parser": "nfx_documents",
     "classification": "article",
     "entry_limit": 3,
-    "planned_access": "growth, network effects, and founder strategy posts",
-    "status": "planned"
+    "sitemap_urls": [
+      "https://nfx.com/sitemap.xml"
+    ],
+    "page_data_url": "https://www.nfx.com/library",
+    "url_allowlist_patterns": [
+      "https://nfx.com/post/"
+    ],
+    "planned_access": "official sitemap plus Next.js page data",
+    "status": "active"
   },
   {
     "id": "lenny-newsletter",
@@ -125,6 +197,10 @@
     "category": "tech",
     "homepage": "https://www.lennysnewsletter.com/",
     "content_channel": "newsletter",
+    "ingest_mode": "rss_feed",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "published_at",
     "parser": "feed_documents",
     "classification": "article",
     "feed_url": "https://www.lennysnewsletter.com/feed",
@@ -138,6 +214,10 @@
     "category": "tech",
     "homepage": "https://www.lennysnewsletter.com/",
     "content_channel": "podcast",
+    "ingest_mode": "rss_feed",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "published_at",
     "parser": "feed_documents",
     "classification": "podcast",
     "feed_url": "https://www.lennysnewsletter.com/feed",
@@ -151,6 +231,10 @@
     "category": "tech",
     "homepage": "https://www.latent.space/",
     "content_channel": "newsletter",
+    "ingest_mode": "rss_feed",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "published_at",
     "parser": "feed_documents",
     "classification": "detect",
     "feed_url": "https://www.latent.space/feed",
@@ -164,11 +248,22 @@
     "category": "vc",
     "homepage": "https://a16z.com/podcasts/",
     "content_channel": "podcast",
-    "parser": "a16z_podcast_shows",
+    "ingest_mode": "xml_sitemap",
+    "enabled": true,
+    "stability": "experimental",
+    "freshness_basis": "published_at",
+    "parser": "sitemap_documents",
     "classification": "podcast",
     "entry_limit": 3,
-    "planned_access": "high-level podcast show pages across the a16z network",
-    "status": "active"
+    "sitemap_index_url": "https://a16z.com/sitemap_index.xml",
+    "sitemap_include_patterns": [
+      "podcast-sitemap"
+    ],
+    "url_allowlist_patterns": [
+      "https://a16z.com/podcast/"
+    ],
+    "planned_access": "official a16z podcast sitemaps",
+    "status": "experimental"
   },
   {
     "id": "first-round-review",
@@ -176,12 +271,16 @@
     "category": "tech",
     "homepage": "https://review.firstround.com/",
     "content_channel": "newsletter",
+    "ingest_mode": "rss_feed",
+    "enabled": true,
+    "stability": "experimental",
+    "freshness_basis": "published_at",
     "parser": "feed_documents",
     "classification": "article",
     "feed_url": "https://review.firstround.com/feed/",
     "entry_limit": 2,
     "planned_access": "founder and operator playbooks from First Round Review",
-    "status": "active"
+    "status": "experimental"
   },
   {
     "id": "yc-blog",
@@ -189,6 +288,10 @@
     "category": "tech",
     "homepage": "https://www.ycombinator.com/blog",
     "content_channel": "newsletter",
+    "ingest_mode": "rss_feed",
+    "enabled": true,
+    "stability": "stable",
+    "freshness_basis": "published_at",
     "parser": "feed_documents",
     "classification": "article",
     "feed_url": "https://www.ycombinator.com/blog/feed",

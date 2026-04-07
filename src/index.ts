@@ -10,12 +10,18 @@ type SourceChannel =
   | "newsletter"
   | "podcast";
 type DocumentType = "article" | "podcast";
+type IngestMode = "rss_feed" | "xml_sitemap" | "official_api" | "page_data" | "homepage" | "manual_curated";
+type SourceStability = "stable" | "experimental" | "manual_curated";
 type SourceParser =
   | "homepage_snapshot"
   | "feed_documents"
   | "a16z_podcast_shows"
   | "internal_article_links"
-  | "hn_front_page";
+  | "hn_front_page"
+  | "sitemap_documents"
+  | "nfx_documents"
+  | "product_hunt_api"
+  | "manual_curated";
 type SourceClassification = "article" | "podcast" | "detect";
 
 type Source = {
@@ -26,15 +32,27 @@ type Source = {
   planned_access: string;
   status: string;
   content_channel: SourceChannel;
+  ingest_mode?: IngestMode;
+  enabled?: boolean;
+  stability?: SourceStability;
+  freshness_basis?: "published_at" | "fetched_at";
   parser?: SourceParser;
   classification?: SourceClassification;
   feed_url?: string;
   entry_limit?: number;
+  sitemap_index_url?: string;
+  sitemap_urls?: string[];
+  sitemap_include_patterns?: string[];
+  url_allowlist_patterns?: string[];
+  credential_binding?: string;
+  api_endpoint?: string;
+  page_data_url?: string;
 };
 
 type Env = {
   SIGNAL_CACHE: KVNamespace;
   SYNC_TOKEN?: string;
+  PRODUCT_HUNT_TOKEN?: string;
 };
 
 type SourceLink = {
@@ -105,6 +123,11 @@ type FeedEntry = {
   published_at: string | null;
   author: string | null;
   summary: string | null;
+};
+
+type SitemapEntry = {
+  url: string;
+  lastmod: string | null;
 };
 
 type PageDetails = {
@@ -291,6 +314,36 @@ function extractPublishedAt(markup: string): string | null {
   return match?.[1] ? normalizeWhitespace(match[1]) : null;
 }
 
+function parseSitemapEntries(xml: string): SitemapEntry[] {
+  const entries = [...xml.matchAll(/<url>([\s\S]*?)<\/url>/gi)];
+
+  return entries.map((match) => {
+    const block = match[1] ?? "";
+    const url = extractTagContent(block, /<loc>([\s\S]*?)<\/loc>/i) ?? "";
+    const lastmod = extractTagContent(block, /<lastmod>([\s\S]*?)<\/lastmod>/i);
+
+    return {
+      url: decodeHtmlEntities(url),
+      lastmod: lastmod ? normalizeWhitespace(lastmod) : null,
+    };
+  }).filter((entry) => entry.url);
+}
+
+function parseSitemapIndex(xml: string): SitemapEntry[] {
+  const entries = [...xml.matchAll(/<sitemap>([\s\S]*?)<\/sitemap>/gi)];
+
+  return entries.map((match) => {
+    const block = match[1] ?? "";
+    const url = extractTagContent(block, /<loc>([\s\S]*?)<\/loc>/i) ?? "";
+    const lastmod = extractTagContent(block, /<lastmod>([\s\S]*?)<\/lastmod>/i);
+
+    return {
+      url: decodeHtmlEntities(url),
+      lastmod: lastmod ? normalizeWhitespace(lastmod) : null,
+    };
+  }).filter((entry) => entry.url);
+}
+
 function parseRssItems(xml: string): FeedEntry[] {
   const items = [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)];
 
@@ -347,6 +400,14 @@ function isWithinLastDay(value: string | null, now = Date.now()): boolean {
   }
 
   return now - timestamp <= ONE_DAY_SECONDS * 1000;
+}
+
+function matchesAnyPattern(value: string, patterns: string[] | undefined): boolean {
+  if (!patterns?.length) {
+    return true;
+  }
+
+  return patterns.some((pattern) => value.includes(pattern));
 }
 
 function shouldIgnoreInternalLink(url: URL): boolean {
@@ -473,6 +534,207 @@ async function fetchDocumentsFromFeed(source: Source): Promise<StructuredDocumen
   const entries = parseRssItems(xml).slice(0, source.entry_limit ?? 5);
   const documents = await Promise.all(entries.map((entry) => buildDocumentFromEntry(source, entry)));
   return documents.filter((item): item is StructuredDocument => Boolean(item));
+}
+
+async function fetchXml(url: string, accept = "application/xml,text/xml;q=0.9,*/*;q=0.8"): Promise<string> {
+  const response = await fetch(url, {
+    headers: {
+      "user-agent": "SiliconSyncBot/0.3 (+https://silicon.yulu34.top)",
+      accept,
+    },
+    redirect: "follow",
+    cf: {
+      cacheTtl: 0,
+      cacheEverything: false,
+    },
+  });
+
+  return response.text();
+}
+
+async function resolveSitemapUrls(source: Source): Promise<string[]> {
+  if (source.sitemap_urls?.length) {
+    return source.sitemap_urls;
+  }
+
+  if (!source.sitemap_index_url) {
+    return [];
+  }
+
+  const xml = await fetchXml(source.sitemap_index_url);
+  const entries = parseSitemapIndex(xml);
+
+  return entries
+    .map((entry) => entry.url)
+    .filter((url) => matchesAnyPattern(url, source.sitemap_include_patterns));
+}
+
+async function fetchDocumentsFromSitemaps(source: Source): Promise<StructuredDocument[]> {
+  const sitemapUrls = await resolveSitemapUrls(source);
+  const sitemapXmls = await Promise.all(sitemapUrls.map((url) => fetchXml(url)));
+  const recentEntries = sitemapXmls
+    .flatMap((xml) => parseSitemapEntries(xml))
+    .filter((entry) => matchesAnyPattern(entry.url, source.url_allowlist_patterns))
+    .filter((entry) => isWithinLastDay(entry.lastmod))
+    .sort((left, right) => new Date(right.lastmod ?? 0).getTime() - new Date(left.lastmod ?? 0).getTime())
+    .slice(0, (source.entry_limit ?? 5) * 2);
+
+  const documents = await Promise.all(
+    recentEntries.slice(0, source.entry_limit ?? 5).map((entry) =>
+      buildDocumentFromEntry(source, {
+        title: entry.url,
+        url: entry.url,
+        published_at: entry.lastmod,
+        author: null,
+        summary: null,
+      }),
+    ),
+  );
+
+  return documents.filter((item): item is StructuredDocument => Boolean(item));
+}
+
+function extractNfxBuildId(markup: string): string | null {
+  const match = markup.match(/\/_next\/static\/([^/]+)\/_buildManifest\.js/);
+  return match?.[1] ?? null;
+}
+
+async function fetchNfxDocuments(source: Source): Promise<StructuredDocument[]> {
+  const sitemapXmls = await Promise.all((source.sitemap_urls ?? []).map((url) => fetchXml(url)));
+  const recentEntries = sitemapXmls
+    .flatMap((xml) => parseSitemapEntries(xml))
+    .filter((entry) => matchesAnyPattern(entry.url, source.url_allowlist_patterns))
+    .filter((entry) => isWithinLastDay(entry.lastmod))
+    .sort((left, right) => new Date(right.lastmod ?? 0).getTime() - new Date(left.lastmod ?? 0).getTime())
+    .slice(0, source.entry_limit ?? 5);
+
+  let metadata = new Map<string, { title: string; summary: string | null }>();
+
+  if (source.page_data_url) {
+    try {
+      const page = await fetchMarkup(source.page_data_url);
+      const buildId = extractNfxBuildId(page.body);
+
+      if (buildId) {
+        const dataUrl = `https://www.nfx.com/_next/data/${buildId}/library.json`;
+        const jsonText = await fetchXml(dataUrl, "application/json,text/plain;q=0.9,*/*;q=0.8");
+        const payload = JSON.parse(jsonText) as {
+          pageProps?: {
+            categorizedPostSections?: Array<{
+              posts?: Array<{
+                title?: string;
+                url?: string;
+                shortDescription?: string;
+              }>;
+            }>;
+          };
+        };
+
+        metadata = new Map(
+          (payload.pageProps?.categorizedPostSections ?? [])
+            .flatMap((section) => section.posts ?? [])
+            .filter((post) => Boolean(post.url && post.title))
+            .map((post) => [
+              new URL(post.url ?? "", "https://nfx.com").toString().replace("https://www.nfx.com", "https://nfx.com"),
+              {
+                title: normalizeWhitespace(post.title ?? ""),
+                summary: post.shortDescription ? normalizeWhitespace(decodeHtmlEntities(post.shortDescription)) : null,
+              },
+            ]),
+        );
+      }
+    } catch {
+      // Fall back to sitemap-only extraction if page-data probing fails.
+    }
+  }
+
+  const documents = await Promise.all(
+    recentEntries.map((entry) =>
+      buildDocumentFromEntry(source, {
+        title: metadata.get(entry.url)?.title ?? entry.url,
+        url: entry.url,
+        published_at: entry.lastmod,
+        author: null,
+        summary: metadata.get(entry.url)?.summary ?? null,
+      }),
+    ),
+  );
+
+  return documents.filter((item): item is StructuredDocument => Boolean(item));
+}
+
+async function fetchProductHuntDocuments(source: Source, env: Env): Promise<StructuredDocument[]> {
+  if (!env.PRODUCT_HUNT_TOKEN) {
+    throw new Error("Missing PRODUCT_HUNT_TOKEN");
+  }
+
+  const response = await fetch(source.api_endpoint ?? "https://api.producthunt.com/v2/api/graphql", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${env.PRODUCT_HUNT_TOKEN}`,
+      "content-type": "application/json",
+      "user-agent": "SiliconSyncBot/0.3 (+https://silicon.yulu34.top)",
+    },
+    body: JSON.stringify({
+      query: `query ProductHuntLatest($first: Int!) {
+        posts(first: $first) {
+          edges {
+            node {
+              id
+              name
+              tagline
+              slug
+              url
+              website
+              votesCount
+              createdAt
+            }
+          }
+        }
+      }`,
+      variables: {
+        first: Math.max((source.entry_limit ?? 3) * 2, 6),
+      },
+    }),
+  });
+  const payload = await response.json() as {
+    data?: {
+      posts?: {
+        edges?: Array<{
+          node?: {
+            id: string;
+            name: string;
+            tagline: string | null;
+            slug: string | null;
+            url: string;
+            website: string | null;
+            votesCount: number | null;
+            createdAt: string;
+          };
+        }>;
+      };
+    };
+  };
+
+  const items = (payload.data?.posts?.edges ?? [])
+    .map((edge) => edge.node)
+    .filter((node): node is NonNullable<typeof node> => Boolean(node))
+    .filter((node) => isWithinLastDay(node.createdAt))
+    .slice(0, source.entry_limit ?? 3);
+
+  return items.map((node) => ({
+    id: `${source.id}:${node.id}`,
+    source_id: source.id,
+    source_name: source.name,
+    document_type: "article" as const,
+    title: normalizeWhitespace(node.name),
+    url: node.url,
+    content: normalizeWhitespace(
+      `${node.tagline ?? ""}\n\nVotes: ${node.votesCount ?? 0}\nWebsite: ${node.website ?? "n/a"}\nProduct Hunt slug: ${node.slug ?? ""}`,
+    ),
+    published_at: new Date(node.createdAt).toISOString(),
+    fetched_at: new Date().toISOString(),
+  }));
 }
 
 async function fetchA16zPodcastShows(source: Source): Promise<StructuredDocument[]> {
@@ -610,6 +872,14 @@ async function fetchSourceDocuments(source: Source): Promise<StructuredDocument[
     return filterFreshDocuments(await fetchHackerNewsDocuments(source));
   }
 
+  if (source.parser === "sitemap_documents") {
+    return filterFreshDocuments(await fetchDocumentsFromSitemaps(source));
+  }
+
+  if (source.parser === "nfx_documents") {
+    return filterFreshDocuments(await fetchNfxDocuments(source));
+  }
+
   return [];
 }
 
@@ -652,6 +922,31 @@ async function writeSyncCursor(env: Env, value: number): Promise<void> {
 }
 
 async function fetchSourceSnapshot(source: Source): Promise<SourceSnapshot> {
+  if (source.parser === "manual_curated" || source.enabled === false) {
+    return {
+      source_id: source.id,
+      source_name: source.name,
+      category: source.category,
+      content_channel: source.content_channel,
+      requested_url: source.homepage,
+      final_url: source.homepage,
+      fetched_at: new Date().toISOString(),
+      ok: true,
+      status_code: 204,
+      content_type: "text/plain; charset=utf-8",
+      page_title: source.name,
+      meta_description: "Manual curated source; auto sync disabled.",
+      raw_preview: "",
+      raw_length: 0,
+      link_count: 0,
+      links: [],
+      etag: null,
+      last_modified: null,
+      documents: [],
+      document_count: 0,
+    };
+  }
+
   const page = await fetchMarkup(source.homepage);
   const links = extractLinks(page.body, page.contentType, page.finalUrl);
   const documents = await fetchSourceDocuments(source);
@@ -682,7 +977,7 @@ async function fetchSourceSnapshot(source: Source): Promise<SourceSnapshot> {
 
 async function syncSingleSource(env: Env, source: Source): Promise<SourceRunResult> {
   try {
-    const snapshot = await fetchSourceSnapshot(source);
+    const snapshot = await fetchSourceSnapshotWithEnv(source, env);
     await env.SIGNAL_CACHE.put(`source:${source.id}:latest`, JSON.stringify(snapshot), {
       expirationTtl: KV_RETENTION_SECONDS,
     });
@@ -714,9 +1009,45 @@ async function syncSingleSource(env: Env, source: Source): Promise<SourceRunResu
   }
 }
 
+async function fetchSourceSnapshotWithEnv(source: Source, env: Env): Promise<SourceSnapshot> {
+  if (source.parser === "product_hunt_api") {
+    const documents = filterFreshDocuments(await fetchProductHuntDocuments(source, env));
+    return {
+      source_id: source.id,
+      source_name: source.name,
+      category: source.category,
+      content_channel: source.content_channel,
+      requested_url: source.homepage,
+      final_url: source.homepage,
+      fetched_at: new Date().toISOString(),
+      ok: true,
+      status_code: 200,
+      content_type: "application/json; charset=utf-8",
+      page_title: source.name,
+      meta_description: source.planned_access,
+      raw_preview: "",
+      raw_length: 0,
+      link_count: documents.length,
+      links: documents.map((document) => ({ url: document.url, text: document.title })),
+      etag: null,
+      last_modified: null,
+      documents,
+      document_count: documents.length,
+    };
+  }
+
+  return fetchSourceSnapshot(source);
+}
+
+const syncableSources = allSources.filter((source) => source.enabled !== false && source.parser !== "manual_curated");
+
 function getBatchSources(cursor: number): Source[] {
-  const start = cursor % allSources.length;
-  const ordered = [...allSources.slice(start), ...allSources.slice(0, start)];
+  if (syncableSources.length === 0) {
+    return [];
+  }
+
+  const start = cursor % syncableSources.length;
+  const ordered = [...syncableSources.slice(start), ...syncableSources.slice(0, start)];
   return ordered.slice(0, SYNC_BATCH_SIZE);
 }
 
@@ -730,7 +1061,9 @@ async function syncAllSources(env: Env): Promise<SyncRun> {
     items.push(await syncSingleSource(env, source));
   }
 
-  await writeSyncCursor(env, (cursor + batchSources.length) % allSources.length);
+  if (syncableSources.length > 0) {
+    await writeSyncCursor(env, (cursor + batchSources.length) % syncableSources.length);
+  }
 
   const run: SyncRun = {
     started_at: startedAt,
@@ -767,6 +1100,9 @@ async function handleSources(env: Env, url: URL): Promise<Response> {
   const items = allSources
     .map((source, index) => ({
       ...source,
+      ingest_mode: source.ingest_mode ?? null,
+      enabled: source.enabled !== false,
+      stability: source.stability ?? null,
       latest_snapshot: snapshots[index]
         ? {
             fetched_at: snapshots[index]?.fetched_at ?? null,
@@ -879,6 +1215,7 @@ function overview() {
     description:
       "Scheduled public-source snapshots plus structured article and podcast documents for Silicon Valley tech and VC intelligence.",
     sources_total: allSources.length,
+    syncable_sources_total: syncableSources.length,
     cron: "0 */3 * * *",
     endpoints: {
       sources: "/api/sources",

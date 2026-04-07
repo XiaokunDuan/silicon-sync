@@ -8,12 +8,14 @@ Silicon Sync is an agent-native source node for tracking early Silicon Valley si
 - Scheduled public-source crawling on Cloudflare Workers
 - AI-friendly JSON output for downstream agents and summarizers
 - English-first source preservation to reduce lossy re-interpretation
+- Official-entry-first ingestion: feeds, sitemaps, and vendor APIs before HTML scraping
 
 ## What It Does
 
 - Periodically fetches configured public source pages
 - Extracts page title, meta description, text preview, and outbound links
 - Builds minimal `article` and `podcast` documents for selected high-signal sources
+- Uses source-specific extractors for Product Hunt, a16z, NFX, and sitemap-backed VC sites
 - Stores the latest snapshot for each source in Workers KV
 - Exposes JSON endpoints for sources, snapshots, documents, links, and latest sync runs
 
@@ -73,6 +75,7 @@ The worker uses:
 - Workers KV for latest source snapshots
 - a cron trigger every 3 hours
 - an optional `SYNC_TOKEN` secret for manual sync
+- an optional `PRODUCT_HUNT_TOKEN` secret for Product Hunt GraphQL ingestion
 - batched sync execution to stay within Worker subrequest limits
 
 ## Document Shape
@@ -85,6 +88,7 @@ Structured documents are intentionally minimal. Each item keeps only:
 - `source_id`
 - `source_name`
 - `document_type`
+- `fetched_at`
 
 ## Retention
 

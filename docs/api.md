@@ -16,6 +16,12 @@ Supported query params:
 
 - `category=tech|vc`
 
+Each source now also includes:
+
+- `ingest_mode`
+- `enabled`
+- `stability`
+
 ### `GET /api/sources/:id`
 
 Returns the full latest snapshot for a single source, including:
@@ -79,6 +85,7 @@ Note:
 
 - each sync runs a batch of sources, not the entire registry at once
 - this keeps the Worker under Cloudflare subrequest limits
+- Product Hunt requires the `PRODUCT_HUNT_TOKEN` Worker secret when enabled
 
 Authentication:
 
