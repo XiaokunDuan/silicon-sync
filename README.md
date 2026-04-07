@@ -1,8 +1,8 @@
-# Silicon Sync
+# Palo Wire
 
-Silicon Sync is an agent-native source layer for tracking early Silicon Valley signals across product launches, developer communities, startup media, newsletters, podcasts, and venture capital writing.
+Palo Wire is an agent-native source layer for tracking early Silicon Valley signals across product launches, developer communities, startup media, newsletters, podcasts, and venture capital writing.
 
-Instead of building a traditional media site, Silicon Sync treats public web sources as inputs to a lightweight intelligence node:
+Instead of building a traditional media site, Palo Wire treats public web sources as inputs to a lightweight intelligence node:
 
 - crawl a curated set of high-signal sources
 - prefer official entry points over brittle scraping
@@ -10,6 +10,22 @@ Instead of building a traditional media site, Silicon Sync treats public web sou
 - expose minimal JSON documents that downstream agents can crawl, rank, summarize, and synthesize
 
 The root page is a landing page for humans. The core product is the source node behind it.
+
+## Live Access
+
+- Landing page: [https://silicon.yulu34.top](https://silicon.yulu34.top)
+- Global documents feed: [https://silicon.yulu34.top/api/documents](https://silicon.yulu34.top/api/documents)
+- Source registry: [https://silicon.yulu34.top/api/sources](https://silicon.yulu34.top/api/sources)
+- Worker preview: [https://palo-wire.ylu665485.workers.dev](https://palo-wire.ylu665485.workers.dev)
+
+If you are a human, start with the landing page.
+
+If you are an agent, start with:
+
+- `/api/sources` to discover available sources
+- `/api/documents` to read the latest cross-source documents
+- `/api/sources/:id/documents` to pull one source at a time
+- `/api/runs/latest` to inspect sync status
 
 ## Why This Exists
 
@@ -20,11 +36,11 @@ Most “trend tracking” products are designed for people to browse manually. T
 - high-signal content is scattered across feeds, sitemaps, APIs, and modern app shells
 - agents should not have to rediscover the same public information on every run
 
-Silicon Sync solves this by maintaining a small, opinionated, continuously refreshed layer of crawlable documents for Silicon Valley tech and VC intelligence.
+Palo Wire solves this by maintaining a small, opinionated, continuously refreshed layer of crawlable documents for Silicon Valley tech and VC intelligence.
 
 In short:
 
-`Silicon Sync = a 24-hour rolling source node for AI systems watching Silicon Valley.`
+`Palo Wire = a 24-hour rolling source node for AI systems watching Silicon Valley.`
 
 ## Design Principles
 
@@ -32,12 +48,12 @@ In short:
 - `Official-entry-first`: prefer RSS, XML sitemaps, page-data endpoints, and vendor APIs before HTML scraping.
 - `High-signal only`: track a small number of good sources instead of mirroring the entire web.
 - `Minimal schema`: keep documents lightweight enough for cheap downstream crawling.
-- `Rolling freshness`: default to recent material, but backfill low-frequency sources so they do not go empty.
+- `Rolling freshness`: prefer recent material while preserving the last successful snapshot for low-frequency sources.
 - `Cheap to run`: stay within the operational envelope of Cloudflare Workers + KV.
 
 ## What The System Does
 
-At a high level, Silicon Sync:
+At a high level, Palo Wire:
 
 1. reads a source registry
 2. schedules crawl batches on Cloudflare Workers
@@ -82,7 +98,7 @@ Workers KV stores:
 
 ## Source Ingestion Strategy
 
-Silicon Sync does not use one generic crawler for everything. Each source is assigned an explicit ingestion mode.
+Palo Wire does not use one generic crawler for everything. Each source is assigned an explicit ingestion mode.
 
 ### `rss_feed`
 
@@ -156,18 +172,18 @@ Examples:
 
 ## Freshness Model
 
-Silicon Sync is built around a rolling recent window, but not every source publishes daily.
+Palo Wire prefers recent material, but low-frequency sources are not cleared just because they did not publish again inside the last 24 hours.
 
 Current behavior:
 
-- if a source has matching content from the last 24 hours, that content is returned first
-- if a source has no fresh entries, Silicon Sync backfills the most recent available entries
-- KV keys expire shortly after the 24-hour window to avoid indefinite drift
+- if a source has fresh matching content from the last 24 hours, that snapshot is replaced with the new result
+- if a source has no fresh matching content, the last successful snapshot is preserved
+- KV keys still expire on a short TTL, but active sources keep getting refreshed as the scheduler runs
 
 This gives downstream agents two useful properties:
 
-- recent sources stay fresh
-- low-frequency sources never collapse into empty feeds
+- fresh sources update quickly
+- low-frequency sources do not collapse into empty feeds between publishing cycles
 
 ## Public Interface
 
@@ -283,7 +299,7 @@ Likely next steps:
 
 ## Philosophy
 
-Silicon Sync is not trying to be another news reader.
+Palo Wire is not trying to be another news reader.
 
 It is trying to be a durable intermediate layer between the open web and agentic reasoning:
 

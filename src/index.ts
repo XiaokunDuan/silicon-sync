@@ -295,7 +295,7 @@ function extractLinks(markup: string, contentType: string, baseUrl: string): Sou
 async function fetchMarkup(url: string): Promise<PageDetails> {
   const response = await fetch(url, {
     headers: {
-      "user-agent": "SiliconSyncBot/0.3 (+https://silicon.yulu34.top)",
+      "user-agent": "PaloWireBot/0.3 (+https://silicon.yulu34.top)",
       accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     },
     redirect: "follow",
@@ -539,7 +539,7 @@ async function fetchDocumentsFromFeed(source: Source): Promise<StructuredDocumen
 
   const response = await fetch(source.feed_url, {
     headers: {
-      "user-agent": "SiliconSyncBot/0.3 (+https://silicon.yulu34.top)",
+      "user-agent": "PaloWireBot/0.3 (+https://silicon.yulu34.top)",
       accept: "application/rss+xml,application/xml,text/xml;q=0.9,*/*;q=0.8",
     },
     redirect: "follow",
@@ -558,7 +558,7 @@ async function fetchDocumentsFromFeed(source: Source): Promise<StructuredDocumen
 async function fetchXml(url: string, accept = "application/xml,text/xml;q=0.9,*/*;q=0.8"): Promise<string> {
   const response = await fetch(url, {
     headers: {
-      "user-agent": "SiliconSyncBot/0.3 (+https://silicon.yulu34.top)",
+      "user-agent": "PaloWireBot/0.3 (+https://silicon.yulu34.top)",
       accept,
     },
     redirect: "follow",
@@ -692,7 +692,7 @@ async function fetchProductHuntDocuments(source: Source, env: Env): Promise<Stru
     headers: {
       authorization: `Bearer ${env.PRODUCT_HUNT_TOKEN}`,
       "content-type": "application/json",
-      "user-agent": "SiliconSyncBot/0.3 (+https://silicon.yulu34.top)",
+      "user-agent": "PaloWireBot/0.3 (+https://silicon.yulu34.top)",
     },
     body: JSON.stringify({
       query: `query ProductHuntLatest($first: Int!) {
@@ -1237,7 +1237,7 @@ async function handleDocuments(env: Env, url: URL): Promise<Response> {
 
 function overview() {
   return {
-    service: "silicon-sync",
+    service: "palo-wire",
     mode: "agent-native source node",
     description:
       "Scheduled public-source snapshots plus structured article and podcast documents for Silicon Valley tech and VC intelligence.",
@@ -1290,10 +1290,10 @@ function renderLanding(): string {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Silicon Sync</title>
+    <title>Palo Wire</title>
     <meta
       name="description"
-      content="Silicon Sync is an AI-native signal desk for Silicon Valley tech and VC intelligence, built as a 24-hour rolling source node for agents."
+      content="Palo Wire is an AI-native signal desk for Silicon Valley tech and VC intelligence, built as a 24-hour rolling source node for agents."
     >
     <style>
       :root {
@@ -1532,7 +1532,7 @@ function renderLanding(): string {
           <span>24-Hour Rolling Source Node</span>
           <span>Built For Agents</span>
         </div>
-        <h1 class="brand">Silicon Sync</h1>
+        <h1 class="brand">Palo Wire</h1>
         <p class="subhead">
           An AI-native signal desk that continuously collects early signals across product launches,
           developer communities, startup media, and venture capital writing, then republishes them in a
@@ -1545,14 +1545,14 @@ function renderLanding(): string {
           <div class="eyebrow">The Lead Story</div>
           <h2>Not a news site. A structured front page for AI systems watching Silicon Valley.</h2>
           <p>
-            Silicon Sync is designed to be read by models first. It crawls public sources, keeps only the
+            Palo Wire is designed to be read by models first. It crawls public sources, keeps only the
             latest 24 hours of material, and exposes a clean document layer so agents can summarize, rank,
             compare, and synthesize signals without re-crawling the open web every time.
           </p>
           <div class="actions">
             <a class="button" href="/api/documents">Open Documents API</a>
             <a class="button secondary" href="/api/sources">Browse Sources</a>
-            <a class="button secondary" href="https://github.com/XiaokunDuan/silicon-sync">View on GitHub</a>
+            <a class="button secondary" href="https://github.com/XiaokunDuan/palo-wire">View on GitHub</a>
           </div>
         </div>
         <aside class="hero-side">
@@ -1628,7 +1628,7 @@ function renderLanding(): string {
         <div class="eyebrow">Tracked Sources</div>
         <h3 style="margin:0;font-size:36px;line-height:1.05;">A mix of community, launch, media, and investor surfaces.</h3>
         <p style="margin:10px 0 0;color:var(--muted);max-width:760px;line-height:1.65;">
-          Silicon Sync watches product launches, developer attention, startup reporting, newsletters,
+          Palo Wire watches product launches, developer attention, startup reporting, newsletters,
           podcast networks, and VC writing. The goal is to capture early movement before it becomes consensus.
         </p>
         <div class="sources-grid">
@@ -1637,7 +1637,7 @@ function renderLanding(): string {
       </section>
 
       <footer class="footer">
-        <span>Silicon Sync</span>
+        <span>Palo Wire</span>
         <span>Agent-native source node for Silicon Valley intelligence</span>
       </footer>
     </div>

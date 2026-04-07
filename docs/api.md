@@ -1,6 +1,6 @@
 # API Design
 
-Silicon Sync exposes an agent-native JSON interface over scheduled public-source snapshots.
+Palo Wire exposes an agent-native JSON interface over scheduled public-source snapshots.
 
 ## Endpoints
 
@@ -99,4 +99,4 @@ This API is designed for agents that need to:
 - pull normalized article and podcast documents
 - inspect extracted links
 - monitor sync success or failure
-- use Silicon Sync as a pre-crawled source layer before deeper summarization
+- use Palo Wire as a pre-crawled source layer before deeper summarization
