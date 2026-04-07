@@ -10,7 +10,12 @@ type SourceChannel =
   | "newsletter"
   | "podcast";
 type DocumentType = "article" | "podcast";
-type SourceParser = "homepage_snapshot" | "feed_documents" | "a16z_podcast_shows";
+type SourceParser =
+  | "homepage_snapshot"
+  | "feed_documents"
+  | "a16z_podcast_shows"
+  | "internal_article_links"
+  | "hn_front_page";
 type SourceClassification = "article" | "podcast" | "detect";
 
 type Source = {
@@ -45,6 +50,7 @@ type StructuredDocument = {
   title: string;
   url: string;
   content: string;
+  published_at: string | null;
   fetched_at: string;
 };
 
@@ -113,6 +119,9 @@ type PageDetails = {
 const allSources = [...(sourceRegistry as Source[])].sort((left, right) =>
   left.name.localeCompare(right.name),
 );
+const ONE_DAY_SECONDS = 60 * 60 * 24;
+const KV_RETENTION_SECONDS = ONE_DAY_SECONDS + 60 * 60;
+const SYNC_BATCH_SIZE = 4;
 
 function json(data: unknown, status = 200, maxAge = 60): Response {
   return new Response(JSON.stringify(data, null, 2), {
@@ -270,6 +279,18 @@ async function fetchMarkup(url: string): Promise<PageDetails> {
   };
 }
 
+function extractPublishedAt(markup: string): string | null {
+  const match = markup.match(
+    /<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"]+)["'][^>]*>/i,
+  )
+    ?? markup.match(
+      /<meta[^>]+name=["']parsely-pub-date["'][^>]+content=["']([^"]+)["'][^>]*>/i,
+    )
+    ?? markup.match(/<time[^>]+datetime=["']([^"]+)["'][^>]*>/i);
+
+  return match?.[1] ? normalizeWhitespace(match[1]) : null;
+}
+
 function parseRssItems(xml: string): FeedEntry[] {
   const items = [...xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)];
 
@@ -315,6 +336,84 @@ function buildContent(documentType: DocumentType, page: PageDetails, entry: Feed
   return normalizeWhitespace(`${summary}\n\n${body}`).slice(0, 14000);
 }
 
+function isWithinLastDay(value: string | null, now = Date.now()): boolean {
+  if (!value) {
+    return false;
+  }
+
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) {
+    return false;
+  }
+
+  return now - timestamp <= ONE_DAY_SECONDS * 1000;
+}
+
+function shouldIgnoreInternalLink(url: URL): boolean {
+  const ignoredSegments = [
+    "/about",
+    "/privacy",
+    "/terms",
+    "/careers",
+    "/jobs",
+    "/contact",
+    "/sitemap",
+    "/podcasts",
+    "/feed",
+    "/tag/",
+    "/tags/",
+    "/category/",
+    "/categories/",
+    "/topics/",
+    "/author/",
+    "/authors/",
+    "/newsletters",
+  ];
+
+  return ignoredSegments.some((segment) => url.pathname === segment || url.pathname.startsWith(segment));
+}
+
+function extractInternalArticleCandidates(source: Source, links: SourceLink[]): string[] {
+  const baseOrigin = new URL(source.homepage).origin;
+  const seen = new Set<string>();
+  const candidates: string[] = [];
+
+  for (const link of links) {
+    let absolute: URL;
+    try {
+      absolute = new URL(link.url);
+    } catch {
+      continue;
+    }
+
+    if (absolute.origin !== baseOrigin) {
+      continue;
+    }
+
+    if (absolute.pathname === "/" || absolute.pathname.length < 6) {
+      continue;
+    }
+
+    if (shouldIgnoreInternalLink(absolute)) {
+      continue;
+    }
+
+    const normalized = absolute.toString().replace(/\/$/, "") || absolute.toString();
+    if (seen.has(normalized)) {
+      continue;
+    }
+
+    seen.add(normalized);
+    candidates.push(normalized);
+
+    if (candidates.length >= (source.entry_limit ?? 6) * 2) {
+      break;
+    }
+  }
+
+  return candidates;
+}
+
 async function buildDocumentFromEntry(source: Source, entry: FeedEntry): Promise<StructuredDocument | null> {
   try {
     const page = await fetchMarkup(entry.url);
@@ -335,6 +434,7 @@ async function buildDocumentFromEntry(source: Source, entry: FeedEntry): Promise
       ? page.pageTitle.split(" - by ")[0]?.split(" | ")[0] ?? entry.title
       : entry.title;
     const content = buildContent(documentType, page, entry);
+    const publishedAt = entry.published_at || extractPublishedAt(page.body);
 
     return {
       id: `${source.id}:${entry.url}`,
@@ -344,6 +444,7 @@ async function buildDocumentFromEntry(source: Source, entry: FeedEntry): Promise
       title: normalizeWhitespace(title),
       url: page.finalUrl,
       content,
+      published_at: publishedAt ? new Date(publishedAt).toISOString() : null,
       fetched_at: new Date().toISOString(),
     };
   } catch {
@@ -402,6 +503,7 @@ async function fetchA16zPodcastShows(source: Source): Promise<StructuredDocument
         title,
         url: details.finalUrl,
         content,
+        published_at: extractPublishedAt(details.body),
         fetched_at: new Date().toISOString(),
       };
     }),
@@ -410,13 +512,102 @@ async function fetchA16zPodcastShows(source: Source): Promise<StructuredDocument
   return documents;
 }
 
+async function fetchInternalArticleLinks(source: Source): Promise<StructuredDocument[]> {
+  const page = await fetchMarkup(source.homepage);
+  const links = extractLinks(page.body, page.contentType, page.finalUrl);
+  const candidates = extractInternalArticleCandidates(source, links).slice(0, source.entry_limit ?? 6);
+  const documents = await Promise.all(
+    candidates.map((url) =>
+      buildDocumentFromEntry(source, {
+        title: url,
+        url,
+        published_at: null,
+        author: null,
+        summary: null,
+      }),
+    ),
+  );
+
+  return documents.filter((item): item is StructuredDocument => Boolean(item));
+}
+
+async function fetchHackerNewsDocuments(source: Source): Promise<StructuredDocument[]> {
+  const page = await fetchMarkup(source.homepage);
+  const anchorPattern = /<a\b[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const items: Array<{ title: string; url: string }> = [];
+  const seen = new Set<string>();
+
+  for (const match of page.body.matchAll(anchorPattern)) {
+    const href = decodeHtmlEntities(normalizeWhitespace(match[1] ?? ""));
+    const text = decodeHtmlEntities(stripTags(match[2] ?? "")).slice(0, 220);
+    if (!href || !text) {
+      continue;
+    }
+
+    let absolute = "";
+    try {
+      absolute = new URL(href, source.homepage).toString();
+    } catch {
+      continue;
+    }
+
+    if (absolute.startsWith("https://news.ycombinator.com/")) {
+      continue;
+    }
+
+    if (seen.has(absolute)) {
+      continue;
+    }
+
+    seen.add(absolute);
+    items.push({ title: text, url: absolute });
+
+    if (items.length >= (source.entry_limit ?? 10)) {
+      break;
+    }
+  }
+
+  const documents = await Promise.all(
+    items.map((item) =>
+      buildDocumentFromEntry(source, {
+        title: item.title,
+        url: item.url,
+        published_at: null,
+        author: null,
+        summary: item.title,
+      }),
+    ),
+  );
+
+  return documents.filter((item): item is StructuredDocument => Boolean(item));
+}
+
+function filterFreshDocuments(documents: StructuredDocument[]): StructuredDocument[] {
+  const now = Date.now();
+  return documents.filter((item) => {
+    if (isWithinLastDay(item.published_at, now)) {
+      return true;
+    }
+
+    return isWithinLastDay(item.fetched_at, now);
+  });
+}
+
 async function fetchSourceDocuments(source: Source): Promise<StructuredDocument[]> {
   if (source.parser === "feed_documents") {
-    return fetchDocumentsFromFeed(source);
+    return filterFreshDocuments(await fetchDocumentsFromFeed(source));
   }
 
   if (source.parser === "a16z_podcast_shows") {
-    return fetchA16zPodcastShows(source);
+    return filterFreshDocuments(await fetchA16zPodcastShows(source));
+  }
+
+  if (source.parser === "internal_article_links") {
+    return filterFreshDocuments(await fetchInternalArticleLinks(source));
+  }
+
+  if (source.parser === "hn_front_page") {
+    return filterFreshDocuments(await fetchHackerNewsDocuments(source));
   }
 
   return [];
@@ -442,6 +633,22 @@ async function readLatestRun(env: Env): Promise<SyncRun | null> {
   }
 
   return JSON.parse(raw) as SyncRun;
+}
+
+async function readSyncCursor(env: Env): Promise<number> {
+  const raw = await env.SIGNAL_CACHE.get("sync:cursor");
+  if (!raw) {
+    return 0;
+  }
+
+  const value = Number(raw);
+  return Number.isNaN(value) ? 0 : value;
+}
+
+async function writeSyncCursor(env: Env, value: number): Promise<void> {
+  await env.SIGNAL_CACHE.put("sync:cursor", String(value), {
+    expirationTtl: KV_RETENTION_SECONDS,
+  });
 }
 
 async function fetchSourceSnapshot(source: Source): Promise<SourceSnapshot> {
@@ -476,7 +683,9 @@ async function fetchSourceSnapshot(source: Source): Promise<SourceSnapshot> {
 async function syncSingleSource(env: Env, source: Source): Promise<SourceRunResult> {
   try {
     const snapshot = await fetchSourceSnapshot(source);
-    await env.SIGNAL_CACHE.put(`source:${source.id}:latest`, JSON.stringify(snapshot));
+    await env.SIGNAL_CACHE.put(`source:${source.id}:latest`, JSON.stringify(snapshot), {
+      expirationTtl: KV_RETENTION_SECONDS,
+    });
 
     return {
       source_id: source.id,
@@ -505,24 +714,36 @@ async function syncSingleSource(env: Env, source: Source): Promise<SourceRunResu
   }
 }
 
+function getBatchSources(cursor: number): Source[] {
+  const start = cursor % allSources.length;
+  const ordered = [...allSources.slice(start), ...allSources.slice(0, start)];
+  return ordered.slice(0, SYNC_BATCH_SIZE);
+}
+
 async function syncAllSources(env: Env): Promise<SyncRun> {
   const startedAt = new Date().toISOString();
   const items: SourceRunResult[] = [];
+  const cursor = await readSyncCursor(env);
+  const batchSources = getBatchSources(cursor);
 
-  for (const source of allSources) {
+  for (const source of batchSources) {
     items.push(await syncSingleSource(env, source));
   }
+
+  await writeSyncCursor(env, (cursor + batchSources.length) % allSources.length);
 
   const run: SyncRun = {
     started_at: startedAt,
     completed_at: new Date().toISOString(),
-    sources_total: allSources.length,
+    sources_total: batchSources.length,
     succeeded: items.filter((item) => item.ok).length,
     failed: items.filter((item) => !item.ok).length,
     items,
   };
 
-  await env.SIGNAL_CACHE.put("run:latest", JSON.stringify(run));
+  await env.SIGNAL_CACHE.put("run:latest", JSON.stringify(run), {
+    expirationTtl: KV_RETENTION_SECONDS,
+  });
   return run;
 }
 
@@ -608,7 +829,16 @@ async function handleSourceDocuments(env: Env, sourceId: string): Promise<Respon
   return json({
     source,
     fetched_at: snapshot?.fetched_at ?? null,
-    items,
+    items: items.map((item) => ({
+      id: item.id,
+      source_id: item.source_id,
+      source_name: item.source_name,
+      document_type: item.document_type,
+      title: item.title,
+      url: item.url,
+      content: item.content,
+      fetched_at: item.fetched_at,
+    })),
     total: items.length,
   });
 }
@@ -637,7 +867,7 @@ async function handleDocuments(env: Env, url: URL): Promise<Response> {
     .filter((item) => (!type || item.document_type === type))
     .sort((left, right) => new Date(right.fetched_at).getTime() - new Date(left.fetched_at).getTime())
     .slice(0, limit)
-    .map(({ source_category: _sourceCategory, ...item }) => item);
+    .map(({ source_category: _sourceCategory, published_at: _publishedAt, ...item }) => item);
 
   return json({ items, total: items.length });
 }

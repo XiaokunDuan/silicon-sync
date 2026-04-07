@@ -5,6 +5,9 @@
     "category": "tech",
     "homepage": "https://news.ycombinator.com/",
     "content_channel": "community",
+    "parser": "hn_front_page",
+    "classification": "article",
+    "entry_limit": 6,
     "planned_access": "official API and front page sampling",
     "status": "planned"
   },
@@ -14,6 +17,9 @@
     "category": "tech",
     "homepage": "https://www.producthunt.com/",
     "content_channel": "launches",
+    "parser": "internal_article_links",
+    "classification": "article",
+    "entry_limit": 3,
     "planned_access": "official pages and stable feed equivalents when available",
     "status": "planned"
   },
@@ -23,6 +29,9 @@
     "category": "tech",
     "homepage": "https://www.ycombinator.com/launches/new",
     "content_channel": "launches",
+    "parser": "internal_article_links",
+    "classification": "article",
+    "entry_limit": 3,
     "planned_access": "company launches, essays, and official updates",
     "status": "planned"
   },
@@ -32,6 +41,9 @@
     "category": "tech",
     "homepage": "https://techcrunch.com/",
     "content_channel": "media",
+    "parser": "internal_article_links",
+    "classification": "article",
+    "entry_limit": 3,
     "planned_access": "rss or editorial pages",
     "status": "planned"
   },
@@ -41,6 +53,9 @@
     "category": "vc",
     "homepage": "https://news.crunchbase.com/",
     "content_channel": "funding",
+    "parser": "internal_article_links",
+    "classification": "article",
+    "entry_limit": 3,
     "planned_access": "funding feeds or manual curation",
     "status": "planned"
   },
@@ -50,6 +65,9 @@
     "category": "vc",
     "homepage": "https://a16z.com/",
     "content_channel": "vc_thesis",
+    "parser": "internal_article_links",
+    "classification": "article",
+    "entry_limit": 3,
     "planned_access": "blog, podcast, and thesis posts",
     "status": "planned"
   },
@@ -59,6 +77,9 @@
     "category": "vc",
     "homepage": "https://www.sequoiacap.com/",
     "content_channel": "vc_thesis",
+    "parser": "internal_article_links",
+    "classification": "article",
+    "entry_limit": 3,
     "planned_access": "portfolio pages and partner essays",
     "status": "planned"
   },
@@ -68,6 +89,9 @@
     "category": "vc",
     "homepage": "https://lsvp.com/",
     "content_channel": "vc_thesis",
+    "parser": "internal_article_links",
+    "classification": "article",
+    "entry_limit": 3,
     "planned_access": "partner posts and market maps",
     "status": "planned"
   },
@@ -77,6 +101,9 @@
     "category": "vc",
     "homepage": "https://benchmark.com/",
     "content_channel": "vc_thesis",
+    "parser": "internal_article_links",
+    "classification": "article",
+    "entry_limit": 3,
     "planned_access": "partner writing and portfolio updates",
     "status": "planned"
   },
@@ -86,7 +113,9 @@
     "category": "vc",
     "homepage": "https://www.nfx.com/",
     "content_channel": "newsletter",
-    "parser": "homepage_snapshot",
+    "parser": "internal_article_links",
+    "classification": "article",
+    "entry_limit": 3,
     "planned_access": "growth, network effects, and founder strategy posts",
     "status": "planned"
   },
@@ -99,7 +128,7 @@
     "parser": "feed_documents",
     "classification": "article",
     "feed_url": "https://www.lennysnewsletter.com/feed",
-    "entry_limit": 4,
+    "entry_limit": 2,
     "planned_access": "high-signal product, growth, and startup newsletter posts",
     "status": "active"
   },
@@ -112,7 +141,7 @@
     "parser": "feed_documents",
     "classification": "podcast",
     "feed_url": "https://www.lennysnewsletter.com/feed",
-    "entry_limit": 4,
+    "entry_limit": 2,
     "planned_access": "podcast episodes and transcript-friendly episode pages",
     "status": "active"
   },
@@ -125,7 +154,7 @@
     "parser": "feed_documents",
     "classification": "detect",
     "feed_url": "https://www.latent.space/feed",
-    "entry_limit": 5,
+    "entry_limit": 2,
     "planned_access": "AI engineer newsletter and technical podcast posts",
     "status": "active"
   },
@@ -137,7 +166,7 @@
     "content_channel": "podcast",
     "parser": "a16z_podcast_shows",
     "classification": "podcast",
-    "entry_limit": 6,
+    "entry_limit": 3,
     "planned_access": "high-level podcast show pages across the a16z network",
     "status": "active"
   },
@@ -150,7 +179,7 @@
     "parser": "feed_documents",
     "classification": "article",
     "feed_url": "https://review.firstround.com/feed/",
-    "entry_limit": 4,
+    "entry_limit": 2,
     "planned_access": "founder and operator playbooks from First Round Review",
     "status": "active"
   },
@@ -163,7 +192,7 @@
     "parser": "feed_documents",
     "classification": "article",
     "feed_url": "https://www.ycombinator.com/blog/feed",
-    "entry_limit": 4,
+    "entry_limit": 2,
     "planned_access": "official YC essays, requests, and startup guidance",
     "status": "active"
   }

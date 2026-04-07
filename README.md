@@ -73,6 +73,7 @@ The worker uses:
 - Workers KV for latest source snapshots
 - a cron trigger every 3 hours
 - an optional `SYNC_TOKEN` secret for manual sync
+- batched sync execution to stay within Worker subrequest limits
 
 ## Document Shape
 
@@ -84,3 +85,9 @@ Structured documents are intentionally minimal. Each item keeps only:
 - `source_id`
 - `source_name`
 - `document_type`
+
+## Retention
+
+- Structured documents are filtered to the last 24 hours
+- KV entries expire automatically shortly after that window
+- Freshly crawled data is kept; older data rolls off on subsequent syncs

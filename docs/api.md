@@ -47,6 +47,11 @@ Each item now keeps only:
 - `document_type`
 - `fetched_at`
 
+Retention behavior:
+
+- only the most recent 24 hours of documents are kept in output
+- older data is filtered out on sync and KV entries also expire automatically
+
 ### `GET /api/sources/:id/links`
 
 Returns only the extracted outbound links for a single source snapshot.
@@ -69,6 +74,11 @@ Returns the latest sync run summary across all configured sources.
 ### `POST /api/sync`
 
 Triggers an immediate sync run.
+
+Note:
+
+- each sync runs a batch of sources, not the entire registry at once
+- this keeps the Worker under Cloudflare subrequest limits
 
 Authentication:
 
