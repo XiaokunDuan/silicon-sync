@@ -13,6 +13,7 @@
   },
   "include": [
     "src/**/*.ts",
-    "data/**/*.json"
+    "data/**/*.json",
+    "sources/**/*.json"
   ]
 }

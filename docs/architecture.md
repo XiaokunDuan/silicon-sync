@@ -1,22 +1,38 @@
 # Architecture
 
-## v1 Goals
+## v2 Goals
 
-- Public read-only intelligence desk
-- English-first structured summaries
-- Manual curation with local JSON sample data
-- Cloudflare Workers deployment on the free tier
+- Agent-native source ingestion node
+- No frontend rendering layer
+- Scheduled crawling of public source pages
+- Persist latest snapshots in Cloudflare KV
+- Expose lightweight JSON interfaces for downstream AI consumers
 
 ## Runtime Shape
 
-- `public/` holds static assets for the main feed experience
-- `src/index.ts` handles JSON API routes and signal detail pages
-- `data/samples/signals.json` is the canonical content store in v1
-- `sources/registry.json` documents target sources and planned acquisition methods
+- `src/index.ts` handles the public JSON API and scheduled sync logic
+- `sources/registry.json` defines the public sources to crawl
+- `wrangler.jsonc` configures the Worker, KV binding, and cron trigger
+- Workers KV stores:
+  - latest snapshot per source
+  - latest sync run summary
+
+## Current Snapshot Model
+
+Each source snapshot stores:
+
+- source id and name
+- category and content channel
+- requested URL and final URL
+- fetch timestamp and HTTP status
+- page title and meta description
+- text preview
+- extracted outbound links
+- basic cache headers such as `etag` and `last-modified`
 
 ## Evolution Path
 
-1. Replace local JSON with generated data artifacts.
-2. Add scheduled ingestion for stable feeds.
-3. Add search-oriented endpoints.
-4. Add MCP-compatible tool and resource layer.
+1. Add per-source specialized crawlers where generic page snapshots are insufficient.
+2. Persist historical runs instead of only latest state.
+3. Add normalized signal extraction on top of raw snapshots.
+4. Expose MCP resources and tools for trend summaries and topic retrieval.

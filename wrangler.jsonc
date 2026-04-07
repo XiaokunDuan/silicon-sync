@@ -5,8 +5,15 @@
   "compatibility_date": "2026-04-07",
   "workers_dev": true,
   "preview_urls": true,
-  "assets": {
-    "binding": "ASSETS",
-    "directory": "./public"
+  "kv_namespaces": [
+    {
+      "binding": "SIGNAL_CACHE",
+      "id": "ea2cafd2392c42c9a8705b1cacfb4650"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "0 */3 * * *"
+    ]
   }
 }

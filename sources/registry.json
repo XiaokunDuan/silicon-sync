@@ -4,6 +4,7 @@
     "name": "Hacker News",
     "category": "tech",
     "homepage": "https://news.ycombinator.com/",
+    "content_channel": "community",
     "planned_access": "official API and front page sampling",
     "status": "planned"
   },
@@ -11,7 +12,8 @@
     "id": "product-hunt",
     "name": "Product Hunt",
     "category": "tech",
-    "homepage": "https://www.producthunt.com/about",
+    "homepage": "https://www.producthunt.com/",
+    "content_channel": "launches",
     "planned_access": "official pages and stable feed equivalents when available",
     "status": "planned"
   },
@@ -20,6 +22,7 @@
     "name": "Y Combinator Launches",
     "category": "tech",
     "homepage": "https://www.ycombinator.com/launches/new",
+    "content_channel": "launches",
     "planned_access": "company launches, essays, and official updates",
     "status": "planned"
   },
@@ -28,6 +31,7 @@
     "name": "TechCrunch",
     "category": "tech",
     "homepage": "https://techcrunch.com/",
+    "content_channel": "media",
     "planned_access": "rss or editorial pages",
     "status": "planned"
   },
@@ -36,6 +40,7 @@
     "name": "Crunchbase News",
     "category": "vc",
     "homepage": "https://news.crunchbase.com/",
+    "content_channel": "funding",
     "planned_access": "funding feeds or manual curation",
     "status": "planned"
   },
@@ -44,6 +49,7 @@
     "name": "a16z",
     "category": "vc",
     "homepage": "https://a16z.com/",
+    "content_channel": "vc_thesis",
     "planned_access": "blog, podcast, and thesis posts",
     "status": "planned"
   },
@@ -52,6 +58,7 @@
     "name": "Sequoia",
     "category": "vc",
     "homepage": "https://www.sequoiacap.com/",
+    "content_channel": "vc_thesis",
     "planned_access": "portfolio pages and partner essays",
     "status": "planned"
   },
@@ -60,6 +67,7 @@
     "name": "Lightspeed",
     "category": "vc",
     "homepage": "https://lsvp.com/",
+    "content_channel": "vc_thesis",
     "planned_access": "partner posts and market maps",
     "status": "planned"
   },
@@ -68,6 +76,7 @@
     "name": "Benchmark",
     "category": "vc",
     "homepage": "https://benchmark.com/",
+    "content_channel": "vc_thesis",
     "planned_access": "partner writing and portfolio updates",
     "status": "planned"
   },
@@ -76,6 +85,7 @@
     "name": "NFX",
     "category": "vc",
     "homepage": "https://www.nfx.com/",
+    "content_channel": "newsletter",
     "planned_access": "growth, network effects, and founder strategy posts",
     "status": "planned"
   }

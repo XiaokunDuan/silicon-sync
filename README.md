@@ -1,93 +1,66 @@
 # Silicon Sync
 
-Silicon Sync is a public intelligence desk for tracking early Silicon Valley signals across product launches, developer communities, and venture capital.
+Silicon Sync is an agent-native source node for tracking early Silicon Valley signals across product launches, developer communities, and venture capital.
 
 ## Positioning
 
-- Human-first in v1: readable as a public signal desk
-- Agent-ready by design: structured records and stable IDs
-- English-first content to preserve source fidelity and make later API or MCP usage simpler
+- No human-facing frontend in v2
+- Scheduled public-source crawling on Cloudflare Workers
+- AI-friendly JSON output for downstream agents and summarizers
+- English-first source preservation to reduce lossy re-interpretation
 
-## What v1 includes
+## What It Does
 
-- A public feed of manually curated signals
-- Filters for category, source, and topic
-- Detail pages for each signal
-- A thin JSON API behind the UI
-- A source registry documenting target information sources
+- Periodically fetches configured public source pages
+- Extracts page title, meta description, text preview, and outbound links
+- Stores the latest snapshot for each source in Workers KV
+- Exposes JSON endpoints for sources, snapshots, links, and latest sync runs
 
-## Initial coverage
-
-### Tech
+## Current Coverage
 
 - Hacker News
 - Product Hunt
-- Y Combinator
+- Y Combinator Launches
 - TechCrunch
-
-### VC
-
-- Crunchbase
+- Crunchbase News
 - a16z
 - Sequoia
 - Lightspeed
 - Benchmark
-
-## Data model
-
-Each signal is stored as a structured record with:
-
-- `id`
-- `title`
-- `source`
-- `url`
-- `published_at`
-- `category`
-- `signal_type`
-- `summary`
-- `why_it_matters`
-- `tags`
-
-The canonical sample data lives in [data/samples/signals.json](/Users/bytedance/silicon-sync/data/samples/signals.json).
+- NFX
 
 ## API
 
-- `GET /api/signals`
-- `GET /api/signals/:id`
+- `GET /`
+- `GET /api/sources`
+- `GET /api/sources/:id`
+- `GET /api/sources/:id/links`
+- `GET /api/runs/latest`
+- `POST /api/sync`
 
-Supported list filters:
+See [docs/api.md](/Users/dxk/code/product/silicon-sync/docs/api.md).
 
-- `category`
-- `source`
-- `tag`
+## Runtime
 
-See [docs/api.md](/Users/bytedance/silicon-sync/docs/api.md).
+- Worker entry: [src/index.ts](/Users/dxk/code/product/silicon-sync/src/index.ts)
+- Source registry: [sources/registry.json](/Users/dxk/code/product/silicon-sync/sources/registry.json)
+- Cloudflare config: [wrangler.jsonc](/Users/dxk/code/product/silicon-sync/wrangler.jsonc)
 
-## Local development
+## Local Development
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Deploy to Cloudflare Workers
+## Deploy
 
 ```bash
 npm run deploy
 ```
 
-You will need to authenticate `wrangler` with your Cloudflare account before the first deployment.
+The worker uses:
 
-## Repo layout
-
-- [src/index.ts](/Users/bytedance/silicon-sync/src/index.ts): Worker routes and signal detail rendering
-- [public/index.html](/Users/bytedance/silicon-sync/public/index.html): main feed shell
-- [sources/registry.json](/Users/bytedance/silicon-sync/sources/registry.json): target source registry
-- [docs/architecture.md](/Users/bytedance/silicon-sync/docs/architecture.md): runtime and evolution path
-
-## Next steps
-
-1. Replace hand-curated JSON with generated data artifacts.
-2. Add scheduled ingestion for stable feeds.
-3. Add search endpoints and richer topic pages.
-4. Add an MCP layer for agent-native access.
+- Workers KV for latest source snapshots
+- a cron trigger every 3 hours
+- an optional `SYNC_TOKEN` secret for manual sync
