@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Silicon Sync</title>
+    <meta
+      name="description"
+      content="A public intelligence desk tracking Silicon Valley product and VC signals."
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Silicon signal desk</p>
+        <h1>Track the product moves, funding flows, and investor narratives shaping Silicon Valley.</h1>
+        <p class="lede">
+          Silicon Sync is a public, English-first desk for watching early signals across tech launches,
+          developer communities, and venture capital.
+        </p>
+      </section>
+
+      <section class="toolbar">
+        <label>
+          Category
+          <select id="category-filter">
+            <option value="">All</option>
+            <option value="tech">Tech</option>
+            <option value="vc">VC</option>
+          </select>
+        </label>
+        <label>
+          Source
+          <select id="source-filter">
+            <option value="">All</option>
+          </select>
+        </label>
+        <label>
+          Topic
+          <input id="tag-filter" type="text" placeholder="ai-agents" />
+        </label>
+        <button id="reset-filters" type="button">Reset</button>
+      </section>
+
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span class="summary-label">Current mode</span>
+          <strong>Human-first, agent-ready</strong>
+          <p>Readable as a public desk now. Structured enough for future MCP and search tools.</p>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">Coverage</span>
+          <strong>Tech + VC</strong>
+          <p>Product launches, founder chatter, investor theses, funding events, and portfolio motion.</p>
+        </article>
+      </section>
+
+      <section class="feed">
+        <div class="feed-header">
+          <h2>Latest signals</h2>
+          <span id="result-count"></span>
+        </div>
+        <div id="signal-list" class="signal-list"></div>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

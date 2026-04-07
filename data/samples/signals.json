@@ -1,0 +1,130 @@
+[
+  {
+    "id": "ph-arcade-ai-2026-04-07",
+    "title": "Arcade AI launches a no-code workflow layer for cross-app agents",
+    "source": "Product Hunt",
+    "url": "https://www.producthunt.com/",
+    "published_at": "2026-04-07T08:10:00Z",
+    "category": "tech",
+    "signal_type": "product_launch",
+    "summary": "A featured launch focuses on assembling multi-step agent workflows that can call SaaS tools without hand-written glue code.",
+    "why_it_matters": "The product direction suggests the market is moving from chat wrappers to operations-oriented agent infrastructure.",
+    "tags": [
+      "ai-agents",
+      "workflow",
+      "automation"
+    ]
+  },
+  {
+    "id": "hn-inference-cost-2026-04-07",
+    "title": "Hacker News discussion clusters around falling inference cost and new AI app ideas",
+    "source": "Hacker News",
+    "url": "https://news.ycombinator.com/",
+    "published_at": "2026-04-07T07:20:00Z",
+    "category": "tech",
+    "signal_type": "community_discussion",
+    "summary": "Top comments connect lower model pricing with a wave of product experiments in code, search, and internal tools.",
+    "why_it_matters": "Developer attention often leads product demand by a few weeks, so HN threads are useful early signal for new tooling categories.",
+    "tags": [
+      "developers",
+      "llm",
+      "cost"
+    ]
+  },
+  {
+    "id": "yc-devtools-2026-04-06",
+    "title": "YC founders highlight internal AI tooling for sales and support teams",
+    "source": "Y Combinator",
+    "url": "https://www.ycombinator.com/",
+    "published_at": "2026-04-06T17:00:00Z",
+    "category": "tech",
+    "signal_type": "accelerator_update",
+    "summary": "Recent founder updates point to agentic copilots that replace fragmented manual workflows inside SMB teams.",
+    "why_it_matters": "YC startup clusters often reveal which B2B use cases are getting founder energy before they become headline funding narratives.",
+    "tags": [
+      "b2b",
+      "sales",
+      "support"
+    ]
+  },
+  {
+    "id": "tc-voice-interface-2026-04-05",
+    "title": "TechCrunch covers a new voice-first AI interface for enterprise software",
+    "source": "TechCrunch",
+    "url": "https://techcrunch.com/",
+    "published_at": "2026-04-05T13:30:00Z",
+    "category": "tech",
+    "signal_type": "media_coverage",
+    "summary": "The story focuses on startups packaging real-time speech, memory, and orchestration into a voice operating layer for work.",
+    "why_it_matters": "Voice interfaces are reappearing as model latency improves, which may reshape how vertical SaaS products are distributed.",
+    "tags": [
+      "voice",
+      "enterprise",
+      "interface"
+    ]
+  },
+  {
+    "id": "cb-agent-round-2026-04-07",
+    "title": "Crunchbase shows a Series A for an AI agent operations startup",
+    "source": "Crunchbase",
+    "url": "https://www.crunchbase.com/",
+    "published_at": "2026-04-07T06:40:00Z",
+    "category": "vc",
+    "signal_type": "funding",
+    "summary": "A newly funded company is building observability and safety tooling for production agent workflows.",
+    "why_it_matters": "Capital flowing into agent operations indicates the market expects agent deployments to move from demos into persistent business systems.",
+    "tags": [
+      "funding",
+      "ai-agents",
+      "infra"
+    ]
+  },
+  {
+    "id": "a16z-thesis-2026-04-06",
+    "title": "a16z thesis piece argues that AI application moats are shifting toward distribution and workflow depth",
+    "source": "a16z",
+    "url": "https://a16z.com/",
+    "published_at": "2026-04-06T15:00:00Z",
+    "category": "vc",
+    "signal_type": "thesis",
+    "summary": "The argument is that model access is commoditizing while workflow integration and customer trust are becoming the durable layer.",
+    "why_it_matters": "VC thesis posts often compress investor belief changes earlier than funding databases can reveal them.",
+    "tags": [
+      "thesis",
+      "distribution",
+      "workflow"
+    ]
+  },
+  {
+    "id": "sequoia-portfolio-2026-04-04",
+    "title": "Sequoia portfolio activity points to continued bets on applied AI for core business functions",
+    "source": "Sequoia",
+    "url": "https://www.sequoiacap.com/",
+    "published_at": "2026-04-04T11:10:00Z",
+    "category": "vc",
+    "signal_type": "portfolio_move",
+    "summary": "Portfolio updates cluster around customer support, finance automation, and vertical software layers enhanced by AI.",
+    "why_it_matters": "Portfolio patterns reveal where large firms believe AI can become repeatable business software instead of one-off tooling.",
+    "tags": [
+      "portfolio",
+      "vertical-saas",
+      "automation"
+    ]
+  },
+  {
+    "id": "lightspeed-marketmap-2026-04-03",
+    "title": "Lightspeed partners map out a crowded but fast-moving market for AI work companions",
+    "source": "Lightspeed",
+    "url": "https://lsvp.com/",
+    "published_at": "2026-04-03T10:00:00Z",
+    "category": "vc",
+    "signal_type": "partner_view",
+    "summary": "Partner commentary emphasizes that category winners will combine model quality with product speed and embedded distribution.",
+    "why_it_matters": "Market maps are useful for understanding when investors see a category as large enough to support multiple differentiated companies.",
+    "tags": [
+      "partner-view",
+      "ai-agents",
+      "competition"
+    ]
+  }
+]
