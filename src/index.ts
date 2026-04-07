@@ -190,6 +190,14 @@ function stripTags(value: string): string {
   );
 }
 
+function stripScriptsAndStyles(value: string): string {
+  return value
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+    .replace(/<svg[\s\S]*?<\/svg>/gi, " ");
+}
+
 function extractTagContent(markup: string, pattern: RegExp): string | null {
   const match = markup.match(pattern);
   if (!match?.[1]) {
@@ -226,6 +234,65 @@ function extractMetaDescription(markup: string): string | null {
     );
 
   return match?.[1] ? decodeHtmlEntities(normalizeWhitespace(match[1])) : null;
+}
+
+function cleanDocumentTitle(title: string): string {
+  return normalizeWhitespace(
+    decodeHtmlEntities(title)
+      .replace(/\s+\|\s+(TechCrunch|Andreessen Horowitz|a16z|Sequoia Capital|Lightspeed Venture Partners)$/i, "")
+      .replace(/\s+-\s+Lightspeed Venture Partners$/i, "")
+      .replace(/\s+-\s+Latent\.Space$/i, "")
+      .replace(/\s+\|\s+Y Combinator$/i, ""),
+  );
+}
+
+function extractPrimaryContent(markup: string): string {
+  const cleaned = stripScriptsAndStyles(markup);
+  const candidates: string[] = [];
+  const patterns = [
+    /<article\b[^>]*>([\s\S]*?)<\/article>/gi,
+    /<main\b[^>]*>([\s\S]*?)<\/main>/gi,
+    /<(section|div)\b[^>]+(?:class|id)=["'][^"']*(?:article|content|body|entry|story|post|main)[^"']*["'][^>]*>([\s\S]*?)<\/\1>/gi,
+  ];
+
+  for (const pattern of patterns) {
+    for (const match of cleaned.matchAll(pattern)) {
+      const block = stripTags(match[2] ?? match[1] ?? "");
+      if (block.length > 200) {
+        candidates.push(block);
+      }
+    }
+  }
+
+  const scored = candidates
+    .map((value) => {
+      const noiseMatches = value.match(
+        /\b(menu|portfolio team|focus areas|about|team|companies|products|content|sign in|subscribe|open menu|newsletters|latest news)\b/gi,
+      ) ?? [];
+      return { value, score: value.length - noiseMatches.length * 80 };
+    })
+    .sort((left, right) => right.score - left.score);
+
+  return scored[0]?.value ?? "";
+}
+
+function cleanContentText(value: string): string {
+  const cleaned = normalizeWhitespace(
+    decodeHtmlEntities(value)
+      .replace(/\b(Portfolio Team|Focus Areas|About|Team|Companies|Products|Content|Open menu|Sign in|Subscribe)\b/gi, " ")
+      .replace(/\b(menu|latest news|newsletter|newsletters)\b/gi, " "),
+  );
+
+  const parts = cleaned.split(/(?<=[.!?])\s+/);
+  const deduped: string[] = [];
+  for (const part of parts) {
+    if (!part || deduped[deduped.length - 1] === part) {
+      continue;
+    }
+    deduped.push(part);
+  }
+
+  return normalizeWhitespace(deduped.join(" "));
 }
 
 function extractLinks(markup: string, contentType: string, baseUrl: string): SourceLink[] {
@@ -399,13 +466,60 @@ function detectDocumentType(page: PageDetails, entry: FeedEntry): DocumentType {
 
 function buildContent(documentType: DocumentType, page: PageDetails, entry: FeedEntry): string {
   const summary = page.metaDescription || entry.summary || "";
-  const body = page.rawText;
+  const body = extractPrimaryContent(page.body) || page.rawText;
 
   if (documentType === "podcast") {
     return normalizeWhitespace(`${summary}\n\n${body}`).slice(0, 14000);
   }
 
   return normalizeWhitespace(`${summary}\n\n${body}`).slice(0, 14000);
+}
+
+function isAllowedDocumentUrl(source: Source, url: string): boolean {
+  if (source.id === "yc-launches") {
+    return /\/launches\/[A-Za-z0-9_-]+/.test(url);
+  }
+
+  if (source.id === "techcrunch") {
+    return /^https:\/\/techcrunch\.com\/\d{4}\/\d{2}\/\d{2}\//.test(url);
+  }
+
+  if (source.id === "crunchbase") {
+    return /^https:\/\/news\.crunchbase\.com\/(venture|ai|fintech-ecommerce|biggest-startup|startups)\//.test(url);
+  }
+
+  return true;
+}
+
+function isLowQualityDocument(source: Source, title: string, url: string, content: string): boolean {
+  const haystack = `${title} ${url} ${content}`.toLowerCase();
+
+  if (source.id === "yc-launches") {
+    return /(apply to yc|yc interview guide|people\b)/i.test(haystack);
+  }
+
+  if (source.id === "techcrunch") {
+    return /techcrunch disrupt|\/events\/|\/latest\/|save close to/i.test(haystack);
+  }
+
+  if (source.id === "crunchbase") {
+    return /(unicorn company list|emerging unicorn|company list|board|tracker)/i.test(haystack);
+  }
+
+  if (source.id === "a16z" || source.id === "nfx") {
+    const prefix = content.slice(0, 220).toLowerCase();
+    return /(portfolio team focus areas|content content team team companies companies|open menu team)/i.test(prefix);
+  }
+
+  if (source.id === "lenny-podcast") {
+    return /subscribe sign in\s+how i ai/i.test(content.slice(0, 180));
+  }
+
+  if (source.id === "a16z-podcast-network") {
+    return /\/podcasts\/$/.test(url);
+  }
+
+  return false;
 }
 
 function isWithinLastDay(value: string | null, now = Date.now()): boolean {
@@ -479,6 +593,9 @@ function extractInternalArticleCandidates(source: Source, links: SourceLink[]): 
     }
 
     const normalized = absolute.toString().replace(/\/$/, "") || absolute.toString();
+    if (!isAllowedDocumentUrl(source, normalized)) {
+      continue;
+    }
     if (seen.has(normalized)) {
       continue;
     }
@@ -515,21 +632,48 @@ async function buildDocumentFromEntry(source: Source, entry: FeedEntry): Promise
       : entry.title;
     const content = buildContent(documentType, page, entry);
     const publishedAt = entry.published_at || extractPublishedAt(page.body);
+    const cleanedTitle = cleanDocumentTitle(title);
+    const cleanedContent = cleanContentText(content);
+
+    if (!isAllowedDocumentUrl(source, page.finalUrl) || isLowQualityDocument(source, cleanedTitle, page.finalUrl, cleanedContent)) {
+      return null;
+    }
 
     return {
       id: `${source.id}:${entry.url}`,
       source_id: source.id,
       source_name: source.name,
       document_type: documentType,
-      title: normalizeWhitespace(title),
+      title: cleanedTitle,
       url: page.finalUrl,
-      content,
+      content: cleanedContent,
       published_at: publishedAt ? new Date(publishedAt).toISOString() : null,
       fetched_at: new Date().toISOString(),
     };
   } catch {
     return null;
   }
+}
+
+function buildSummaryOnlyDocument(source: Source, entry: FeedEntry): StructuredDocument | null {
+  const title = cleanDocumentTitle(entry.title);
+  const content = cleanContentText(entry.summary ?? "");
+
+  if (!title || !content || !isAllowedDocumentUrl(source, entry.url) || isLowQualityDocument(source, title, entry.url, content)) {
+    return null;
+  }
+
+  return {
+    id: `${source.id}:${entry.url}`,
+    source_id: source.id,
+    source_name: source.name,
+    document_type: source.classification === "podcast" ? "podcast" : "article",
+    title,
+    url: entry.url,
+    content,
+    published_at: entry.published_at ? new Date(entry.published_at).toISOString() : null,
+    fetched_at: new Date().toISOString(),
+  };
 }
 
 async function fetchDocumentsFromFeed(source: Source): Promise<StructuredDocument[]> {
@@ -551,7 +695,10 @@ async function fetchDocumentsFromFeed(source: Source): Promise<StructuredDocumen
 
   const xml = await response.text();
   const entries = parseRssItems(xml).slice(0, source.entry_limit ?? 5);
-  const documents = await Promise.all(entries.map((entry) => buildDocumentFromEntry(source, entry)));
+  const documents = await Promise.all(entries.map(async (entry) => {
+    const full = await buildDocumentFromEntry(source, entry);
+    return full ?? buildSummaryOnlyDocument(source, entry);
+  }));
   return documents.filter((item): item is StructuredDocument => Boolean(item));
 }
 
@@ -1592,9 +1739,40 @@ function renderLanding(): string {
         .stat { border-bottom: 2px solid var(--rule); }
         .stat:last-child { border-bottom: none; }
       }
+      @keyframes ticker {
+        0% { transform: translateX(100%); }
+        100% { transform: translateX(-100%); }
+      }
+      .ticker-wrap {
+        overflow: hidden;
+        background: var(--accent);
+        color: #000;
+        padding: 12px 0;
+        border-bottom: 2px solid var(--rule);
+        white-space: nowrap;
+        position: relative;
+        z-index: 100;
+      }
+      .ticker {
+        display: inline-block;
+        font: 14px/1 'Inter', sans-serif;
+        text-transform: uppercase;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        animation: ticker 20s linear infinite;
+      }
+      .source-card:nth-child(4n+1) { border-color: var(--accent-alt); }
+      .source-card:nth-child(4n+2) { border-color: var(--accent); }
+      .source-card:nth-child(4n+3) { border-color: #00ffff; }
+      .source-card:hover { background: #1a1a1a; }
     </style>
   </head>
   <body>
+    <div class="ticker-wrap">
+      <div class="ticker">
+        PALO WIRE // CUTTING EDGE SIGNAL DESK // ALWAYS ROLLING // AGENT NATIVE // PALO WIRE // SILICON VALLEY SURVEILLANCE // PALO WIRE // CUTTING EDGE SIGNAL DESK // ALWAYS ROLLING // AGENT NATIVE // PALO WIRE // SILICON VALLEY SURVEILLANCE //
+      </div>
+    </div>
     <div class="page">
       <header class="masthead">
         <div class="masthead-top">
