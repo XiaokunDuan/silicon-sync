@@ -3,6 +3,8 @@
   "name": "silicon-sync",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-07",
+  "workers_dev": true,
+  "preview_urls": true,
   "assets": {
     "binding": "ASSETS",
     "directory": "./public"

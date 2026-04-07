@@ -1,4 +1,5 @@
 import signals from "../data/samples/signals.json";
+import sourceRegistry from "../sources/registry.json";
 
 type SignalCategory = "tech" | "vc";
 
@@ -23,6 +24,20 @@ const allSignals = [...(signals as Signal[])].sort(
   (left, right) =>
     new Date(right.published_at).getTime() - new Date(left.published_at).getTime(),
 );
+const allSources = [...(sourceRegistry as Source[])].sort((left, right) =>
+  left.name.localeCompare(right.name),
+);
+
+type SourceCategory = "tech" | "vc";
+
+type Source = {
+  id: string;
+  name: string;
+  category: SourceCategory;
+  homepage: string;
+  planned_access: string;
+  status: string;
+};
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data, null, 2), {
@@ -125,6 +140,13 @@ export default {
       return json({
         items: filterSignals(url),
         total: filterSignals(url).length,
+      });
+    }
+
+    if (url.pathname === "/api/sources") {
+      return json({
+        items: allSources,
+        total: allSources.length,
       });
     }
 

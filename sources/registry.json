@@ -11,15 +11,15 @@
     "id": "product-hunt",
     "name": "Product Hunt",
     "category": "tech",
-    "homepage": "https://www.producthunt.com/",
+    "homepage": "https://www.producthunt.com/about",
     "planned_access": "official pages and stable feed equivalents when available",
     "status": "planned"
   },
   {
-    "id": "yc",
-    "name": "Y Combinator",
+    "id": "yc-launches",
+    "name": "Y Combinator Launches",
     "category": "tech",
-    "homepage": "https://www.ycombinator.com/",
+    "homepage": "https://www.ycombinator.com/launches/new",
     "planned_access": "company launches, essays, and official updates",
     "status": "planned"
   },
@@ -33,9 +33,9 @@
   },
   {
     "id": "crunchbase",
-    "name": "Crunchbase",
+    "name": "Crunchbase News",
     "category": "vc",
-    "homepage": "https://www.crunchbase.com/",
+    "homepage": "https://news.crunchbase.com/",
     "planned_access": "funding feeds or manual curation",
     "status": "planned"
   },
@@ -67,8 +67,16 @@
     "id": "benchmark",
     "name": "Benchmark",
     "category": "vc",
-    "homepage": "https://www.benchmark.com/",
+    "homepage": "https://benchmark.com/",
     "planned_access": "partner writing and portfolio updates",
+    "status": "planned"
+  },
+  {
+    "id": "nfx",
+    "name": "NFX",
+    "category": "vc",
+    "homepage": "https://www.nfx.com/",
+    "planned_access": "growth, network effects, and founder strategy posts",
     "status": "planned"
   }
 ]

@@ -4,8 +4,14 @@ const tagFilter = document.querySelector("#tag-filter");
 const resetButton = document.querySelector("#reset-filters");
 const signalList = document.querySelector("#signal-list");
 const resultCount = document.querySelector("#result-count");
+const sourceList = document.querySelector("#source-list");
+const sourceCount = document.querySelector("#source-count");
+const statTotal = document.querySelector("#stat-total");
+const statSplit = document.querySelector("#stat-split");
+const statSources = document.querySelector("#stat-sources");
 
 let allSignals = [];
+let allSources = [];
 
 function formatDate(value) {
   return new Date(value).toLocaleString("en-US", {
@@ -74,11 +80,49 @@ function hydrateSources(items) {
     .join("")}`;
 }
 
+function renderSources(items) {
+  sourceCount.textContent = `${items.length} sources`;
+
+  sourceList.innerHTML = items
+    .map(
+      (source) => `
+        <article class="source-card">
+          <div class="card-topline">
+            <span class="pill">${source.category}</span>
+            <span>${source.status}</span>
+          </div>
+          <h3><a href="${source.homepage}" target="_blank" rel="noreferrer">${source.name}</a></h3>
+          <p>${source.planned_access}</p>
+          <a class="source-link-inline" href="${source.homepage}" target="_blank" rel="noreferrer">Visit source</a>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function hydrateStats(items) {
+  const techCount = items.filter((item) => item.category === "tech").length;
+  const vcCount = items.length - techCount;
+  const sourceCount = new Set(items.map((item) => item.source)).size;
+
+  statTotal.textContent = String(items.length);
+  statSplit.textContent = `${techCount} tech / ${vcCount} vc`;
+  statSources.textContent = String(sourceCount);
+}
+
 async function boot() {
-  const response = await fetch("/api/signals");
-  const payload = await response.json();
-  allSignals = payload.items;
+  const [signalResponse, sourceResponse] = await Promise.all([
+    fetch("/api/signals"),
+    fetch("/api/sources"),
+  ]);
+  const signalPayload = await signalResponse.json();
+  const sourcePayload = await sourceResponse.json();
+
+  allSignals = signalPayload.items;
+  allSources = sourcePayload.items;
   hydrateSources(allSignals);
+  hydrateStats(allSignals);
+  renderSources(allSources);
   renderSignals(allSignals);
 }
 
