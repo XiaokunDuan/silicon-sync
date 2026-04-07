@@ -1297,221 +1297,284 @@ function renderLanding(): string {
     >
     <style>
       :root {
-        --paper: #f5f1e8;
-        --ink: #111111;
-        --muted: #655f54;
-        --rule: #d8d0c1;
-        --accent: #8d1d1d;
-        --panel: #fbf8f1;
+        --bg: #000000;
+        --ink: #ffffff;
+        --muted: #a1a1a1;
+        --rule: #333333;
+        --accent: #e8ff00;
+        --accent-alt: #ff00ff;
+        --panel: #0a0a0a;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        background:
-          linear-gradient(to bottom, rgba(141, 29, 29, 0.05), transparent 140px),
-          var(--paper);
+        background: var(--bg);
         color: var(--ink);
-        font-family: Georgia, "Times New Roman", Times, serif;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
       }
-      a { color: inherit; }
+      a { color: inherit; text-decoration: none; }
       .page {
-        max-width: 1180px;
+        max-width: 1200px;
         margin: 0 auto;
-        padding: 24px 20px 72px;
+        padding: 0 20px 80px;
       }
       .masthead {
-        border-top: 3px double var(--rule);
-        border-bottom: 3px double var(--rule);
-        padding: 12px 0 14px;
-        text-align: center;
+        border-bottom: 2px solid var(--rule);
+        padding: 24px 0 32px;
+        text-align: left;
       }
       .masthead-top {
         display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 24px;
         color: var(--muted);
-        font: 12px/1.2 "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font: 11px/1.2 'Inter', sans-serif;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.15em;
+        font-weight: 800;
       }
+      .masthead-top span {
+        border-right: 2px solid var(--rule);
+        padding-right: 20px;
+      }
+      .masthead-top span:last-child { border: none; }
       .brand {
         margin: 0;
-        font-size: clamp(46px, 8vw, 86px);
-        line-height: 0.94;
-        letter-spacing: -0.04em;
-        font-weight: 700;
+        font-size: clamp(60px, 11vw, 130px);
+        line-height: 0.85;
+        letter-spacing: -0.06em;
+        font-weight: 900;
+        text-transform: uppercase;
+        color: var(--ink);
+        display: inline-block;
+        background: linear-gradient(90deg, var(--accent), var(--accent-alt));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
       }
       .subhead {
         max-width: 760px;
-        margin: 10px auto 0;
+        margin: 24px 0 0;
         color: var(--muted);
-        font-size: 15px;
-        line-height: 1.55;
+        font-size: 18px;
+        line-height: 1.6;
+        font-weight: 500;
       }
       .hero {
         display: grid;
-        grid-template-columns: 1.45fr 0.9fr;
-        gap: 28px;
-        padding: 28px 0 32px;
-        border-bottom: 1px solid var(--rule);
+        grid-template-columns: 1fr 0.8fr;
+        gap: 0;
+        padding: 40px 0;
+        border-bottom: 2px solid var(--rule);
       }
       .hero-main {
-        padding-right: 28px;
-        border-right: 1px solid var(--rule);
+        padding-right: 48px;
+        border-right: 2px solid var(--rule);
       }
       .eyebrow {
-        margin-bottom: 14px;
-        color: var(--accent);
-        font: 12px/1.2 "Helvetica Neue", Helvetica, Arial, sans-serif;
+        display: inline-block;
+        margin-bottom: 20px;
+        background: var(--accent);
+        color: #000;
+        padding: 6px 10px;
+        font: 13px/1 'Inter', sans-serif;
         text-transform: uppercase;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.1em;
+        font-weight: 900;
       }
       .hero h2 {
         margin: 0;
-        font-size: clamp(34px, 5vw, 64px);
-        line-height: 0.98;
-        letter-spacing: -0.03em;
+        font-size: clamp(36px, 6vw, 60px);
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+        font-weight: 900;
       }
       .hero p {
-        margin: 20px 0 0;
+        margin: 24px 0 0;
         font-size: 20px;
-        line-height: 1.55;
+        line-height: 1.6;
+        color: #cccccc;
       }
       .hero-side {
         display: grid;
-        gap: 18px;
+        gap: 0;
         align-content: start;
+        padding-left: 48px;
       }
       .dek, .source-card {
-        background: var(--panel);
-        border: 1px solid var(--rule);
+        background: transparent;
+        border: none;
       }
       .dek {
-        padding: 18px;
+        padding: 0 0 32px 0;
+        border-bottom: 2px solid var(--rule);
+        margin-bottom: 32px;
       }
+      .dek:last-child { border: none; margin: 0; padding: 0; }
       .dek h3, .section h3, .source-card h3 {
-        margin: 0 0 10px;
-        font-size: 24px;
+        margin: 0 0 12px;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
       }
       .dek p, .section p, .source-card p {
         margin: 0;
         color: var(--muted);
         font-size: 16px;
-        line-height: 1.65;
+        line-height: 1.6;
       }
       .actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 26px;
+        gap: 16px;
+        margin-top: 40px;
       }
       .button {
-        padding: 12px 16px;
-        text-decoration: none;
-        font: 13px/1.2 "Helvetica Neue", Helvetica, Arial, sans-serif;
+        padding: 16px 24px;
+        font: 14px/1 'Inter', sans-serif;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        border: 1px solid var(--ink);
+        letter-spacing: 0.1em;
+        font-weight: 900;
+        border: 2px solid var(--ink);
         background: var(--ink);
-        color: white;
+        color: var(--bg);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .button:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #000;
+        transform: translate(-2px, -2px);
+        box-shadow: 4px 4px 0 var(--accent-alt);
       }
       .button.secondary {
         background: transparent;
         color: var(--ink);
       }
+      .button.secondary:hover {
+        background: var(--ink);
+        color: var(--bg);
+        transform: translate(-2px, -2px);
+        box-shadow: 4px 4px 0 var(--accent);
+      }
       .stats {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        border-bottom: 1px solid var(--rule);
+        background: var(--panel);
+        border: 2px solid var(--rule);
+        margin-top: 40px;
       }
       .stat {
-        padding: 20px 12px 22px;
-        text-align: center;
-        border-right: 1px solid var(--rule);
+        padding: 32px 24px;
+        text-align: left;
+        border-right: 2px solid var(--rule);
       }
       .stat:last-child { border-right: 0; }
       .stat strong {
         display: block;
-        font-size: clamp(28px, 4vw, 42px);
+        font-size: clamp(32px, 5vw, 48px);
         line-height: 1;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+        color: var(--accent);
       }
       .stat span {
         display: block;
-        margin-top: 8px;
+        margin-top: 12px;
         color: var(--muted);
-        font: 12px/1.2 "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font: 12px/1 'Inter', sans-serif;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.15em;
+        font-weight: 800;
       }
       .grid {
         display: grid;
-        grid-template-columns: 0.92fr 1.08fr;
-        gap: 28px;
-        padding-top: 28px;
+        grid-template-columns: 1fr 1fr;
+        gap: 64px;
+        padding-top: 64px;
       }
       .section {
-        padding-top: 18px;
-        border-top: 1px solid var(--rule);
+        padding-top: 0;
+        border: none;
       }
       .list {
         list-style: none;
-        margin: 14px 0 0;
+        margin: 24px 0 0;
         padding: 0;
       }
       .list li {
         display: flex;
         justify-content: space-between;
-        gap: 10px;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--rule);
+        gap: 16px;
+        padding: 16px 0;
+        border-bottom: 2px solid var(--rule);
         font-size: 16px;
+        font-weight: 600;
+        align-items: center;
       }
+      .list li:first-child { border-top: 2px solid var(--rule); }
       .list small {
-        color: var(--muted);
+        color: var(--ink);
+        background: var(--rule);
+        padding: 4px 8px;
         white-space: nowrap;
-        font: 12px/1.2 "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font: 11px/1 'Inter', sans-serif;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.1em;
+        font-weight: 900;
       }
       .sources {
-        margin-top: 30px;
-        padding-top: 18px;
-        border-top: 1px solid var(--rule);
+        margin-top: 80px;
+        padding-top: 64px;
+        border-top: 8px solid var(--accent-alt);
       }
       .sources-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 16px;
-        margin-top: 18px;
+        gap: 24px;
+        margin-top: 40px;
       }
       .source-card {
-        padding: 18px;
+        padding: 24px;
+        background: var(--panel);
+        border: 2px solid var(--rule);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
-      .source-card h3 { font-size: 22px; }
+      .source-card:hover {
+        border-color: var(--accent);
+        transform: translate(-4px, -4px);
+        box-shadow: 6px 6px 0 var(--accent);
+      }
+      .source-card h3 { font-size: 22px; font-weight: 900; }
       .source-eyebrow, .source-meta {
         color: var(--muted);
-        font: 12px/1.2 "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font: 11px/1 'Inter', sans-serif;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.1em;
+        font-weight: 800;
       }
-      .source-eyebrow { margin-bottom: 10px; }
+      .source-eyebrow { margin-bottom: 16px; display: inline-block; color: var(--accent); }
       .source-meta {
         display: flex;
-        gap: 10px;
-        margin-top: 14px;
-        padding-top: 12px;
-        border-top: 1px solid var(--rule);
+        gap: 16px;
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 2px solid var(--rule);
       }
       .footer {
         display: flex;
         justify-content: space-between;
-        gap: 12px;
-        margin-top: 36px;
-        padding-top: 16px;
-        border-top: 3px double var(--rule);
+        gap: 16px;
+        margin-top: 80px;
+        padding: 32px 0;
+        border-top: 2px solid var(--rule);
         color: var(--muted);
-        font-size: 14px;
+        font-size: 13px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
       }
       @media (max-width: 980px) {
         .hero, .grid, .stats, .sources-grid {
@@ -1521,6 +1584,13 @@ function renderLanding(): string {
           border-right: 0;
           padding-right: 0;
         }
+        .hero-side {
+          padding-left: 0;
+          margin-top: 48px;
+        }
+        .grid { gap: 48px; }
+        .stat { border-bottom: 2px solid var(--rule); }
+        .stat:last-child { border-bottom: none; }
       }
     </style>
   </head>
@@ -1626,8 +1696,8 @@ function renderLanding(): string {
 
       <section class="sources">
         <div class="eyebrow">Tracked Sources</div>
-        <h3 style="margin:0;font-size:36px;line-height:1.05;">A mix of community, launch, media, and investor surfaces.</h3>
-        <p style="margin:10px 0 0;color:var(--muted);max-width:760px;line-height:1.65;">
+        <h3 style="margin:0;font-size:clamp(36px, 5vw, 48px);font-weight:900;letter-spacing:-0.03em;line-height:1.05;">A mix of community, launch, media, and investor surfaces.</h3>
+        <p style="margin:16px 0 0;color:var(--muted);max-width:760px;line-height:1.65;font-size:20px;">
           Palo Wire watches product launches, developer attention, startup reporting, newsletters,
           podcast networks, and VC writing. The goal is to capture early movement before it becomes consensus.
         </p>
