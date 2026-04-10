@@ -219,7 +219,7 @@ function decodeHtmlEntities(value: string): string {
 }
 
 function unwrapCdata(value: string): string {
-  return value.replace(/^<!\[CDATA\[([\s\S]*?)\]\]>$/i, "$1");
+  return value.replace(/^\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*$/i, "$1");
 }
 
 function extractTitle(markup: string): string | null {
@@ -243,7 +243,7 @@ function extractMetaDescription(markup: string): string | null {
 
 function cleanDocumentTitle(title: string): string {
   return normalizeWhitespace(
-    decodeHtmlEntities(title)
+    unwrapCdata(decodeHtmlEntities(title))
       .replace(/\s+\|\s+(TechCrunch|Andreessen Horowitz|a16z|Sequoia Capital|Lightspeed Venture Partners)$/i, "")
       .replace(/\s+-\s+Lightspeed Venture Partners$/i, "")
       .replace(/\s+-\s+Latent\.Space$/i, "")
@@ -298,6 +298,10 @@ function cleanContentText(value: string): string {
   }
 
   return normalizeWhitespace(deduped.join(" "));
+}
+
+function isFetchFailureText(value: string): boolean {
+  return /\b(too many requests|rate limited|access denied|forbidden|service unavailable|temporarily unavailable)\b/i.test(value);
 }
 
 function stripMarkdown(value: string): string {
@@ -632,13 +636,36 @@ function detectDocumentType(page: PageDetails, entry: FeedEntry): DocumentType {
     : "article";
 }
 
-function buildContent(source: Source, documentType: DocumentType, page: PageDetails, entry: FeedEntry): string {
+async function fetchTechCrunchArticleContent(page: PageDetails): Promise<string> {
+  const apiUrl = page.body.match(/https:\/\/techcrunch\.com\/wp-json\/wp\/v2\/posts\/\d+/)?.[0];
+  if (!apiUrl) {
+    return "";
+  }
+
+  try {
+    const jsonText = await fetchXml(apiUrl, "application/json,text/plain;q=0.9,*/*;q=0.8");
+    const payload = JSON.parse(jsonText) as {
+      content?: { rendered?: string };
+    };
+    return payload.content?.rendered ? stripTags(payload.content.rendered) : "";
+  } catch {
+    return "";
+  }
+}
+
+function buildContent(source: Source, documentType: DocumentType, page: PageDetails, entry: FeedEntry, preferredBody = ""): string {
   const summary = page.metaDescription || entry.summary || "";
-  const body = source.id === "a16z"
+  const pageBody = source.id === "a16z"
     ? extractA16zArticleContent(page.body) || extractPrimaryContent(page.body) || page.rawText
     : source.id === "nfx"
       ? extractNfxArticleContent(page.body) || extractPrimaryContent(page.body) || page.rawText
       : extractPrimaryContent(page.body) || page.rawText;
+  const feedBody = entry.content_html ? stripTags(entry.content_html) : "";
+  const bodyCandidates = [preferredBody, feedBody, pageBody]
+    .map((value) => normalizeWhitespace(value))
+    .filter((value) => value && !isFetchFailureText(value))
+    .sort((left, right) => right.length - left.length);
+  const body = bodyCandidates[0] ?? "";
 
   if (documentType === "podcast") {
     return normalizeWhitespace(`${summary}\n\n${body}`).slice(0, 14000);
@@ -666,12 +693,16 @@ function isAllowedDocumentUrl(source: Source, url: string): boolean {
 function isLowQualityDocument(source: Source, title: string, url: string, content: string): boolean {
   const haystack = `${title} ${url} ${content}`.toLowerCase();
 
+  if (isFetchFailureText(haystack)) {
+    return true;
+  }
+
   if (source.id === "yc-launches") {
     return /(apply to yc|yc interview guide|people\b)/i.test(haystack);
   }
 
   if (source.id === "techcrunch") {
-    return /techcrunch disrupt|\/events\/|\/latest\/|save close to/i.test(haystack);
+    return content.length < 500 || /techcrunch disrupt|\/events\/|\/latest\/|save close to/i.test(haystack);
   }
 
   if (source.id === "crunchbase") {
@@ -689,6 +720,10 @@ function isLowQualityDocument(source: Source, title: string, url: string, conten
 
   if (source.id === "lenny-newsletter") {
     return /(how i ai|podcast network|listen now:|podcasts\.apple\.com|open\.spotify\.com)/i.test(`${title} ${content}`);
+  }
+
+  if (source.id === "latent-space") {
+    return content.length < 500;
   }
 
   if (source.id === "a16z-podcast-network") {
@@ -806,10 +841,13 @@ async function buildDocumentFromEntry(source: Source, entry: FeedEntry): Promise
     const documentType = source.classification === "detect"
       ? detectedType
       : source.classification ?? detectedType;
-    const title = page.pageTitle
+    const title = page.pageTitle && !isFetchFailureText(page.pageTitle)
       ? page.pageTitle.split(" - by ")[0]?.split(" | ")[0] ?? entry.title
       : entry.title;
-    const content = buildContent(source, documentType, page, entry);
+    const preferredBody = source.id === "techcrunch"
+      ? await fetchTechCrunchArticleContent(page)
+      : "";
+    const content = buildContent(source, documentType, page, entry, preferredBody);
     const publishedAt = entry.published_at || extractPublishedAt(page.body);
     const cleanedTitle = cleanDocumentTitle(title);
     const cleanedContent = cleanContentText(content);
@@ -1724,7 +1762,27 @@ function renderLanding(): string {
         gap: 20px;
         flex-wrap: wrap;
       }
-      .topbar nav a:hover { color: var(--ink); }
+      .topbar nav a {
+        position: relative;
+        transition: color 160ms ease, transform 160ms ease;
+      }
+      .topbar nav a::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: -8px;
+        width: 100%;
+        height: 2px;
+        background: var(--accent-line);
+        transform: scaleX(0);
+        transform-origin: left center;
+        transition: transform 180ms ease;
+      }
+      .topbar nav a:hover {
+        color: var(--ink);
+        transform: translateY(-1px);
+      }
+      .topbar nav a:hover::after { transform: scaleX(1); }
       .masthead {
         padding: 34px 0 0;
         text-align: left;
@@ -1747,6 +1805,11 @@ function renderLanding(): string {
       .masthead-top span {
         padding: 14px 16px;
         border-right: 1px solid var(--border);
+        transition: background 160ms ease, color 160ms ease;
+      }
+      .masthead-top span:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--ink);
       }
       .masthead-top span:last-child { border-right: none; }
       .brand {
@@ -1820,8 +1883,9 @@ function renderLanding(): string {
         background: var(--accent);
         color: #000;
         transition: 160ms ease;
+        position: relative;
       }
-      .button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+      .button:hover { transform: translateY(-2px); filter: brightness(1.05); }
       .button.secondary {
         background: transparent;
         color: var(--ink);
@@ -1874,6 +1938,7 @@ function renderLanding(): string {
         padding: 34px 28px;
         background: var(--bg-elevated);
         border: 1px solid var(--border);
+        transition: border-color 180ms ease, transform 180ms ease, background 180ms ease;
       }
       .grid .section:nth-child(1) {
         background:
@@ -1915,6 +1980,11 @@ function renderLanding(): string {
         font-size: 16px;
         font-weight: 600;
         letter-spacing: -0.02em;
+        transition: transform 160ms ease, border-color 160ms ease, color 160ms ease;
+      }
+      .list li:hover {
+        transform: translateX(4px);
+        border-color: rgba(255, 255, 255, 0.22);
       }
       .list li:last-child { border: none; padding-bottom: 0; }
       .list small {
@@ -1927,6 +1997,13 @@ function renderLanding(): string {
         text-transform: uppercase;
         letter-spacing: 0.14em;
         white-space: nowrap;
+        transition: color 160ms ease, border-color 160ms ease, background 160ms ease, transform 160ms ease;
+      }
+      .list li:hover small {
+        color: #000;
+        background: var(--accent-cyan);
+        border-color: var(--accent-cyan);
+        transform: translateX(2px);
       }
       .sources {
         margin-top: 64px;
@@ -1959,6 +2036,7 @@ function renderLanding(): string {
         letter-spacing: -0.04em;
         margin: 0 0 12px;
         line-height: 1.02;
+        transition: color 160ms ease, transform 160ms ease;
       }
       .source-eyebrow {
         display: inline-block;
@@ -1968,6 +2046,7 @@ function renderLanding(): string {
         text-transform: uppercase;
         letter-spacing: 0.16em;
         font-weight: 900;
+        transition: color 160ms ease, transform 160ms ease;
       }
       .source-card p {
         font-size: 15px;
@@ -1975,6 +2054,7 @@ function renderLanding(): string {
         color: var(--ink-subtle);
         margin: 0;
         line-height: 1.55;
+        transition: color 160ms ease;
       }
       .source-meta {
         display: flex;
@@ -1987,6 +2067,20 @@ function renderLanding(): string {
         text-transform: uppercase;
         letter-spacing: 0.14em;
         font-weight: 900;
+        transition: color 160ms ease, border-color 160ms ease;
+      }
+      .source-card:hover h3 {
+        color: var(--accent);
+        transform: translateX(3px);
+      }
+      .source-card:hover .source-eyebrow {
+        color: var(--accent-cyan);
+        transform: translateX(3px);
+      }
+      .source-card:hover p { color: var(--ink); }
+      .source-card:hover .source-meta {
+        color: var(--ink-subtle);
+        border-color: rgba(255, 255, 255, 0.22);
       }
       .footer {
         display: flex;
@@ -2000,6 +2094,17 @@ function renderLanding(): string {
         font-weight: 900;
         text-transform: uppercase;
         letter-spacing: 0.18em;
+      }
+      .hero h2,
+      .subhead,
+      .section h3,
+      .button,
+      .source-card,
+      .source-card h3,
+      .source-eyebrow,
+      .list li,
+      .topbar nav a {
+        will-change: transform;
       }
       @media (max-width: 980px) {
         .page { padding: 20px 18px 80px; }
